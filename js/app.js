@@ -6,10 +6,12 @@
 
   const shopEl = document.getElementById("shop-panels");
   const tabsEl = document.getElementById("category-tabs");
-  const tooltipEl = document.getElementById("item-tooltip");
+  const tooltipDisplayEl = document.getElementById("tooltip-display");
   const searchTab = document.getElementById("tab-search");
 
   let searchInputEl = null;
+  let tooltipCard = null;
+  let selectedCard = null;
   let activeCategory = "weapon";
 
   function iconPath(category, file) {
@@ -45,7 +47,8 @@
       searchInputEl.value = "";
       applySearchFilter("");
     }
-    hideTooltip();
+    deselectCard();
+    hideTooltipDisplay();
   }
 
   function buildPanels() {
@@ -56,9 +59,12 @@
       panel.id = "panel-" + cat;
       panel.style.backgroundImage = 'url("frontend_assets/shop_bg_' + cat + '.webp")';
 
+      const tierGrid = document.createElement("div");
+      tierGrid.className = "tier-grid";
       TIER_ORDER.forEach((tier) => {
-        panel.appendChild(buildTierQuadrant(cat, tier));
+        tierGrid.appendChild(buildTierQuadrant(cat, tier));
       });
+      panel.appendChild(tierGrid);
 
       shopEl.appendChild(panel);
     });
@@ -175,70 +181,260 @@
     labelWrap.appendChild(label);
     card.appendChild(labelWrap);
 
+    const selectedOverlay = document.createElement("div");
+    selectedOverlay.className = "card-selected-overlay";
+    card.appendChild(selectedOverlay);
+
     card.addEventListener("mouseenter", () => {
-      showTooltip(card, cat, tier, item);
+      showTooltipDisplay(cat, tier, item);
       card.classList.add("is-hovered");
-      const panel = card.closest(".shop-panel");
-      if (panel) panel.classList.add("dimming");
+      updatePanelDimming(card.closest(".shop-panel"));
     });
-    card.addEventListener("mousemove", (e) => positionTooltip(e, card));
     card.addEventListener("mouseleave", () => {
-      hideTooltip();
       card.classList.remove("is-hovered");
-      const panel = card.closest(".shop-panel");
-      if (panel) panel.classList.remove("dimming");
+      updatePanelDimming(card.closest(".shop-panel"));
+      if (selectedCard) {
+        showTooltipDisplay(selectedCard.cat, selectedCard.tier, selectedCard.item);
+      } else {
+        hideTooltipDisplay();
+      }
+    });
+    card.addEventListener("click", () => {
+      if (selectedCard && selectedCard.el === card) {
+        deselectCard();
+        hideTooltipDisplay();
+        updatePanelDimming(card.closest(".shop-panel"));
+        return;
+      }
+      if (selectedCard) selectedCard.el.classList.remove("selected");
+      card.classList.add("selected");
+      selectedCard = { el: card, cat, tier, item };
+      showTooltipDisplay(cat, tier, item);
+      updatePanelDimming(card.closest(".shop-panel"));
     });
 
     return card;
   }
 
-  function showTooltip(card, cat, tier, item) {
+  function updatePanelDimming(panel) {
+    if (!panel) return;
+    const shouldDim = !!panel.querySelector(".mod-box.is-hovered, .mod-box.selected");
+    panel.classList.toggle("dimming", shouldDim);
+  }
+
+  function deselectCard() {
+    if (!selectedCard) return;
+    selectedCard.el.classList.remove("selected");
+    selectedCard = null;
+  }
+
+  function buildTooltipDisplay() {
+    const card = document.createElement("div");
+    card.className = "tooltip-card";
+
+    const top = document.createElement("div");
+    top.className = "tooltip-card-top";
+
+    const name = document.createElement("div");
+    name.className = "tooltip-card-name";
+    top.appendChild(name);
+
+    const cost = document.createElement("div");
+    cost.className = "tooltip-card-cost";
+    const costIcon = document.createElement("img");
+    costIcon.className = "tooltip-soul-icon";
+    costIcon.src = "frontend_assets/icon_soul.svg";
+    costIcon.alt = "";
+    const costValue = document.createElement("span");
+    cost.appendChild(costIcon);
+    cost.appendChild(costValue);
+    top.appendChild(cost);
+
+    card.appendChild(top);
+
+    const body = document.createElement("div");
+    body.className = "tooltip-card-body";
+    const desc = document.createElement("div");
+    desc.className = "tooltip-card-desc";
+    body.appendChild(desc);
+    card.appendChild(body);
+
+    tooltipDisplayEl.appendChild(card);
+
+    tooltipCard = { root: card, top, name, costValue, body, desc };
+  }
+
+  function showTooltipDisplay(cat, tier, item) {
     const key = cat + ":" + item.file;
-    const desc = ITEM_DESCRIPTIONS[key] || "";
+    const details = ITEM_DETAILS[key];
 
-    let tagsHtml = "";
-    if (item.imbue) tagsHtml += '<span class="tooltip-tag tag-imbue">Imbue</span>';
-    if (item.active) tagsHtml += '<span class="tooltip-tag tag-active">Active</span>';
+    tooltipCard.top.style.backgroundImage = 'url("frontend_assets/tooltip_bg_' + cat + '_top.png")';
+    tooltipCard.body.style.backgroundImage = 'url("frontend_assets/tooltip_bg_' + cat + '_bottom.png")';
+    tooltipCard.name.textContent = item.name;
+    tooltipCard.costValue.textContent = tier.toLocaleString();
+    tooltipCard.desc.innerHTML = details
+      ? buildTooltipBodyHtml(details, cat)
+      : '<div class="tooltip-placeholder">Description coming soon.</div>';
 
-    tooltipEl.className = "item-tooltip category-" + cat;
-    tooltipEl.innerHTML =
-      '<div class="tooltip-header">' +
-      '<span class="tooltip-name">' + item.name + "</span>" +
-      '<span class="tooltip-cost"><img class="tooltip-soul" src="frontend_assets/icon_soul.svg" alt="">' + tier + "</span>" +
-      "</div>" +
-      '<div class="tooltip-meta">' +
-      '<span class="tooltip-category">' + SHOP_DATA[cat].label + '</span>' +
-      tagsHtml +
-      "</div>" +
-      '<div class="tooltip-desc">' + (desc || "Description coming soon.") + "</div>";
-
-    tooltipEl.style.display = "block";
-    positionTooltip(null, card);
+    tooltipCard.root.classList.add("visible");
   }
 
-  function positionTooltip(e, card) {
-    if (tooltipEl.style.display !== "block") return;
-    const rect = card.getBoundingClientRect();
-    const tw = tooltipEl.offsetWidth || 260;
-    const th = tooltipEl.offsetHeight || 160;
-
-    let left = rect.right + 12;
-    let top = rect.top;
-
-    if (left + tw > window.innerWidth - 8) {
-      left = rect.left - tw - 12;
-    }
-    if (top + th > window.innerHeight - 8) {
-      top = window.innerHeight - th - 8;
-    }
-    if (top < 8) top = 8;
-
-    tooltipEl.style.left = left + window.scrollX + "px";
-    tooltipEl.style.top = top + window.scrollY + "px";
+  function hideTooltipDisplay() {
+    tooltipCard.root.classList.remove("visible");
   }
 
-  function hideTooltip() {
-    tooltipEl.style.display = "none";
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function renderInlineFormatting(text) {
+    return escapeHtml(text || "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  }
+
+  function statIconImg(code, extraClass) {
+    const file = STAT_ICON_FILES[code];
+    if (!file) return "";
+    return '<img class="' + extraClass + '" src="stat_icons/' + file + '" alt="">';
+  }
+
+  function buildTooltipBodyHtml(details, cat) {
+    const innateHtml = (details.innateStats || []).length
+      ? '<div class="tooltip-innate-stats">' +
+        details.innateStats.map((s) => '<div class="tooltip-innate-stat">' + renderInlineFormatting(s) + "</div>").join("") +
+        "</div>"
+      : "";
+
+    const sectionsHtml = (details.abilities || []).map(buildAbilitySectionHtml).join("");
+    const upgradesHtml = buildUpgradesHtml(details, cat);
+
+    return innateHtml + sectionsHtml + upgradesHtml;
+  }
+
+  function buildAbilitySectionHtml(section) {
+    const cooldownHtml = section.cooldown
+      ? '<span class="tooltip-section-cooldown">' +
+        statIconImg("ability-cooldown", "tooltip-section-cooldown-icon") +
+        section.cooldown +
+        "</span>"
+      : "";
+
+    const noteHtml = section.note ? '<div class="tooltip-section-note">' + renderInlineFormatting(section.note) + "</div>" : "";
+    const extraHtml = section.extraDescription
+      ? '<div class="tooltip-section-desc">' + renderInlineFormatting(section.extraDescription) + "</div>"
+      : "";
+
+    const boxes = section.boxes || [];
+    const statusBoxes = boxes.filter((b) => b.type === "status_effect");
+    const statBoxes = boxes.filter((b) => b.type === "stat");
+    const footerBoxes = boxes.filter((b) => b.type === "footer");
+
+    const statusHtml = statusBoxes.length
+      ? '<div class="tooltip-status-row">' + statusBoxes.map(renderStatusChip).join("") + "</div>"
+      : "";
+    const statGridHtml = statBoxes.length
+      ? '<div class="tooltip-stat-grid">' + statBoxes.map(renderStatBox).join("") + "</div>"
+      : "";
+    const footerHtml = footerBoxes.length
+      ? '<div class="tooltip-footer-row">' + footerBoxes.map(renderStatBox).join("") + "</div>"
+      : "";
+
+    return (
+      '<div class="tooltip-section">' +
+      '<div class="tooltip-section-header">' +
+      '<span class="tooltip-section-type">' +
+      escapeHtml(section.type) +
+      "</span>" +
+      cooldownHtml +
+      "</div>" +
+      '<div class="tooltip-section-body">' +
+      '<div class="tooltip-section-desc">' +
+      renderInlineFormatting(section.description) +
+      "</div>" +
+      noteHtml +
+      extraHtml +
+      statusHtml +
+      statGridHtml +
+      footerHtml +
+      "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderStatusChip(box) {
+    return (
+      '<div class="tooltip-status-chip">' +
+      statIconImg(box.icon, "tooltip-status-chip-icon") +
+      '<span class="tooltip-status-chip-name">' +
+      escapeHtml(box.label) +
+      "</span>" +
+      '<span class="tooltip-status-chip-caption">Status Effect</span>' +
+      "</div>"
+    );
+  }
+
+  function renderStatBox(box) {
+    const isFooter = box.type === "footer";
+    const colorClass = "tooltip-stat-color-" + (box.color || "white");
+    const scalingHtml = box.scaling
+      ? '<span class="tooltip-stat-scaling">' +
+        statIconImg("spirit-scaling", "tooltip-stat-scaling-icon") +
+        "x" +
+        escapeHtml(box.scaling) +
+        "</span>"
+      : "";
+    const conditionalHtml = box.conditional ? '<div class="tooltip-stat-conditional">Conditional</div>' : "";
+
+    return (
+      '<div class="tooltip-stat-box' +
+      (isFooter ? " tooltip-stat-box-footer" : "") +
+      '">' +
+      scalingHtml +
+      '<div class="tooltip-stat-icon-value">' +
+      statIconImg(box.icon, "tooltip-stat-icon") +
+      '<span class="tooltip-stat-value ' +
+      colorClass +
+      '">' +
+      escapeHtml(box.value) +
+      "</span>" +
+      (isFooter ? '<span class="tooltip-stat-label">' + escapeHtml(box.label) + "</span>" : "") +
+      "</div>" +
+      (isFooter ? "" : '<div class="tooltip-stat-label">' + escapeHtml(box.label) + "</div>") +
+      conditionalHtml +
+      "</div>"
+    );
+  }
+
+  function findItemFile(cat, name) {
+    const tiers = SHOP_DATA[cat].tiers;
+    for (const t of Object.keys(tiers)) {
+      const found = tiers[t].find((i) => i.name === name);
+      if (found) return found.file;
+    }
+    return null;
+  }
+
+  function buildUpgradesHtml(details, cat) {
+    const direction = details.upgradesFrom ? "From" : details.upgradesTo ? "To" : null;
+    if (!direction) return "";
+    const itemName = details.upgradesFrom || details.upgradesTo;
+    const file = findItemFile(cat, itemName);
+    const iconHtml = file
+      ? '<div class="tooltip-upgrade-icon" style="background-image:url(\'' + iconPath(cat, file) + "')\"></div>"
+      : "";
+
+    return (
+      '<div class="tooltip-upgrades">' +
+      '<div class="tooltip-upgrades-label">Upgrades ' +
+      direction +
+      ":</div>" +
+      '<div class="tooltip-upgrade-item">' +
+      iconHtml +
+      "<span>" +
+      escapeHtml(itemName) +
+      "</span>" +
+      "</div>" +
+      "</div>"
+    );
   }
 
   function applySearchFilter(query) {
@@ -249,7 +445,19 @@
     });
   }
 
+  function syncTooltipDisplayHeight() {
+    const ro = new ResizeObserver((entries) => {
+      const h = entries[0].contentRect.height;
+      if (h > 0) {
+        document.documentElement.style.setProperty("--tooltip-display-h", h + "px");
+      }
+    });
+    ro.observe(shopEl);
+  }
+
+  buildTooltipDisplay();
   buildTabs();
   buildPanels();
   buildSearchPanel();
+  syncTooltipDisplayHeight();
 })();

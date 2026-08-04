@@ -22,6 +22,7 @@
 :root {
   --panel-w: 1076px;
   --panel-h: 960px;
+  --tooltip-display-h: 960px;
 
   /* Scattered black-dot grain texture, varied sizes/opacities for a
      random noise look. Shared via variable so it can be reused on
@@ -157,15 +158,24 @@ body {
 }
 
 .tooltip-display {
+  /* --tooltip-display-h is kept in sync with #shop-panels' actual
+     rendered height by a ResizeObserver in app.js (falls back to the
+     --panel-h design constant until JS measures it). Both width and
+     height are derived from that single value at the image's native
+     800:1618 ratio — same trick .shop-panel uses via aspect-ratio —
+     so the box always matches the image's shape exactly and
+     background-size: cover never has a mismatched ratio to crop. */
+  position: relative;
   flex-shrink: 0;
   margin-left: 6px;
-  width: calc(var(--panel-h) * 800 / 1618);
-  aspect-ratio: 800 / 1618;
+  height: var(--tooltip-display-h);
+  width: calc(var(--tooltip-display-h) * 800 / 1618);
   background-image: url("../frontend_assets/shop_bg_tooltip.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 6px;
+  overflow: hidden;
 }
 
 .category-tabs {
@@ -253,6 +263,7 @@ body {
   position: relative;
   width: var(--panel-w);
   max-width: 100%;
+  container-type: inline-size;
 }
 
 .shop-panel {
@@ -268,9 +279,26 @@ body {
 }
 
 .shop-panel.active {
+  display: block;
+}
+
+/* Tier-quadrant grid, laid out at its native 1076x960 design size and
+   then scaled down as one rigid unit to match the panel's actual
+   rendered width (100cqw / 1076px, via #shop-panels being the query
+   container). Keeps every hand-tuned offset/size in the tier system
+   below proportionally consistent instead of drifting as the panel
+   shrinks with the browser window. */
+.tier-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1076px;
+  height: 960px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto auto;
+  transform: scale(calc(100cqw / 1076px));
+  transform-origin: top left;
 }
 
 /* Search panel: not a tiered 2x2 grid like the other categories — a
@@ -381,7 +409,11 @@ body {
     overflow: visible;
   }
 
-  .shop-panel.active {
+  .tier-grid {
+    position: static;
+    width: auto;
+    height: auto;
+    transform: none;
     grid-template-columns: 1fr;
     grid-template-rows: repeat(4, auto);
   }
@@ -440,14 +472,45 @@ body {
 
 .mod-box:hover {
   transform: translateY(-2px);
+  animation: selected-rotate 3.6s ease-in-out infinite;
   z-index: 2;
+}
+
+.mod-box.selected {
+  /* Independent transform properties (rotate/translate/scale) so the
+     sway and the bob can run on their own animations with different
+     durations, rather than one combined keyframe list where both
+     would peak/trough at the same instant. */
+  scale: 1.2;
+  animation: selected-rotate 3.6s ease-in-out infinite, selected-float 2.4s ease-in-out infinite;
+  z-index: 4;
+}
+
+@keyframes selected-rotate {
+  0%,
+  100% {
+    rotate: -2deg;
+  }
+  50% {
+    rotate: 2deg;
+  }
+}
+
+@keyframes selected-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -6px;
+  }
 }
 
 .mod-box.search-hidden {
   display: none;
 }
 
-.shop-panel.dimming .mod-box:not(.is-hovered) {
+.shop-panel.dimming .mod-box:not(.is-hovered):not(.selected) {
   opacity: 0.5;
 }
 
@@ -457,6 +520,22 @@ body {
   background-size: cover;
   background-position: center;
   border-radius: 4px;
+}
+
+.card-selected-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background-image: url("../frontend_assets/card_selected.png");
+  background-size: cover;
+  background-position: center;
+  border-radius: 4px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.mod-box.selected .card-selected-overlay {
+  display: block;
 }
 
 .paper-texture {
@@ -576,77 +655,338 @@ body {
 
 /* ---------- tooltip ---------- */
 
-.item-tooltip {
+/* Item tooltip now lives inside .tooltip-display (top-down, in place
+   of the old cursor-following floating tooltip). One card is built
+   once and its content/background images are swapped on hover. */
+.tooltip-card {
   display: none;
   position: absolute;
-  z-index: 500;
-  width: 260px;
-  padding: 16px 16px 18px;
-  background-image: url("../frontend_assets/infobox_bg.png");
-  background-size: 100% 100%;
-  color: #241c14;
-  font-size: 13px;
-  pointer-events: none;
-  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+  top: 42px;
+  left: 44px;
+  right: 36px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
 }
 
-.tooltip-header {
+.tooltip-card.visible {
+  display: block;
+}
+
+.tooltip-card-top {
+  width: 100%;
+  aspect-ratio: 500 / 115;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: #2a2432;
+  padding: 14px 18px;
+  box-sizing: border-box;
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  border-bottom: 1px solid rgba(36, 28, 20, 0.3);
-  padding-bottom: 8px;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 8px 8px 0 0;
+}
+
+.tooltip-card-name {
+  font-family: "ValvePulp", sans-serif;
+  font-size: 26px;
+  color: #ffffff;
+  line-height: 1.15;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip-card-cost {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #00fff5;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip-soul-icon {
+  width: auto;
+  height: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.tooltip-card-body {
+  /* Height follows content (padding + text), not a fixed aspect
+     ratio. The background is sized to the card's width at the
+     image's native ratio (never stretched/squished) and top-aligned,
+     so a short body simply crops the bottom of the texture off
+     instead of distorting it. */
+  width: 100%;
+  height: auto;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-color: #1c1720;
+  padding: 18px;
+  box-sizing: border-box;
+  border-radius: 0 0 8px 8px;
+  color: #f0ece2;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tooltip-placeholder {
+  opacity: 0.7;
+}
+
+/* ---------- tooltip: innate stats ---------- */
+
+.tooltip-innate-stats {
   margin-bottom: 8px;
 }
 
-.tooltip-name {
-  font-family: "ValvePulp", sans-serif;
-  font-size: 15px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.tooltip-innate-stat {
+  color: #d8d2e0;
+  font-size: 18px;
+  line-height: 1.6;
 }
 
-.tooltip-cost {
+.tooltip-innate-stat strong {
+  color: #ffffff;
+}
+
+/* ---------- tooltip: ability sections ---------- */
+
+.tooltip-section {
+  margin-top: 10px;
+}
+
+.tooltip-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% + 36px);
+  margin-left: -18px;
+  padding: 6px 18px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.tooltip-section-type {
+  font-weight: 700;
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.tooltip-section-cooldown {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.tooltip-section-cooldown-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.tooltip-section-body {
+  padding-top: 8px;
+}
+
+.tooltip-section-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ece6f0;
+}
+
+.tooltip-section-desc + .tooltip-section-desc {
+  margin-top: 8px;
+}
+
+.tooltip-section-desc strong {
+  color: #ffffff;
+}
+
+.tooltip-section-note {
+  margin-top: 6px;
+  font-size: 11px;
+  font-style: italic;
+  color: #a99fb5;
+}
+
+/* ---------- tooltip: status effect chips ---------- */
+
+.tooltip-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.tooltip-status-chip {
+  flex: 1 1 auto;
+  min-width: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 3px;
-  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.tooltip-status-chip-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.tooltip-status-chip-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.tooltip-status-chip-caption {
+  font-size: 10px;
+  color: #a99fb5;
+}
+
+/* ---------- tooltip: stat boxes ---------- */
+
+.tooltip-stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.tooltip-footer-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.tooltip-stat-box {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 90px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.tooltip-stat-box-footer {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.tooltip-stat-icon-value {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tooltip-stat-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.tooltip-stat-value {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tooltip-stat-color-white {
+  color: #f0ece2;
+}
+
+.tooltip-stat-color-purple {
+  color: #cfa0f5;
+}
+
+.tooltip-stat-color-orange {
+  color: #ffb84d;
+}
+
+.tooltip-stat-color-green {
+  color: #7ee08a;
+}
+
+.tooltip-stat-color-red {
+  color: #ff6b6b;
+}
+
+.tooltip-stat-label {
+  margin-top: 3px;
+  font-size: 11px;
+  color: #cfc7d6;
+}
+
+.tooltip-stat-box-footer .tooltip-stat-label {
+  margin-top: 0;
+}
+
+.tooltip-stat-conditional {
+  margin-top: 2px;
+  font-size: 9px;
+  font-style: italic;
+  color: #a99fb5;
+}
+
+.tooltip-stat-scaling {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: #7d2f9c;
+  color: #f4e4fb;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.tooltip-stat-scaling-icon {
+  width: 8px;
+  height: 8px;
+}
+
+/* ---------- tooltip: upgrades ---------- */
+
+.tooltip-upgrades {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.tooltip-upgrades-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a99fb5;
   white-space: nowrap;
 }
 
-.tooltip-soul {
-  width: auto;
-  height: 15px;
-}
-
-.tooltip-meta {
+.tooltip-upgrade-item {
   display: flex;
-  gap: 6px;
   align-items: center;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.tooltip-category {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  opacity: 0.65;
-}
-
-.tooltip-tag {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 2px;
-  letter-spacing: 0.5px;
-}
-
-.tooltip-desc {
+  gap: 6px;
   font-size: 12px;
-  line-height: 1.5;
-  opacity: 0.85;
-  min-height: 40px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.tooltip-upgrade-icon {
+  width: 22px;
+  height: 22px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }

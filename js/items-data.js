@@ -217,5 +217,90 @@ const LEGACY_ITEMS = {
   spirit: ["Extra_Charge.png", "Rapid_Recharge.png"]
 };
 
-// Filled in later per-item. Keyed as "category:File_Name.png".
-const ITEM_DESCRIPTIONS = {};
+// Maps the short icon codes used below (and in the "Icon Reference" sheet
+// of item_data.xlsx) to their actual filename in stat_icons/.
+const STAT_ICON_FILES = {
+  "abilities": "abilities-icon.png",
+  "ability-cooldown": "ability-cooldown-icon.png",
+  "ability-duration": "ability-duration-icon.png",
+  "ability-range": "ability-range-icon.png",
+  "ammo": "ammo-icon.png",
+  "bonus-ability-charges": "bonus-ability-charges-icon.png",
+  "build-up": "build-up-icon.png",
+  "bullet-damage": "bullet-damage-icon.png",
+  "bullet-evasion": "bullet-evasion-icon.png",
+  "bullet-velocity": "bullet-velocity-icon.png",
+  "charge-up": "charge-up-icon.png",
+  "damage-amplification": "damage-amplification-icon.png",
+  "damage-barrier": "damage-barrier-icon.png",
+  "damage-per-second": "damage-per-second-icon.png",
+  "damage-resistance": "damage-resistance-icon.png",
+  "debuff-resist": "debuff-resist-icon.png",
+  "duration": "duration-icon.png",
+  "fire-rate": "fire-rate-icon.png",
+  "health": "health-icon.png",
+  "hero-attributes-table": "hero-attributes-table-icon.png",
+  "imbue": "imbue-icon.png",
+  "lifesteal": "lifesteal-icon.png",
+  "melee-damage": "melee-damage-icon.png",
+  "melee-distance": "melee-distance-icon.png",
+  "move-speed": "move-speed-icon.png",
+  "movement-slow": "movement-slow-icon.png",
+  "pure-damage": "pure-damage-icon.png",
+  "reload-time": "reload-time-icon.png",
+  "slide-distance": "slide-distance-icon.png",
+  "souls": "souls_icon.png",
+  "spirit-damage": "spirit-damage-icon.png",
+  "spirit-power": "spirit-power-icon.png",
+  "spirit-scaling": "spirit-scaling-icon.png",
+  "stack": "stack-icon.png",
+  "stamina": "stamina-icon.png",
+  "weapon-damage": "weapon-damage-icon.png"
+};
+
+/*
+ * Rich tooltip content, filled in later from item_data.xlsx. Keyed as
+ * "category:File_Name.png". Shape per entry:
+ *
+ * {
+ *   innateStats: ["+8 Spirit Power", ...],      // plain lines under cost
+ *   abilities: [{
+ *     type: "Passive" | "Active",
+ *     cooldown: "30s",                          // omit if none shown
+ *     description: "Inflict **bold** text...",  // ** = highlighted span
+ *     note: "small italic sub-note",             // optional
+ *     extraDescription: "second paragraph",      // optional
+ *     boxes: [{
+ *       type: "stat" | "status_effect" | "footer",
+ *       icon: "ability-range",                  // key into STAT_ICON_FILES
+ *       value: "20m",
+ *       label: "Cast Range",
+ *       color: "white" | "purple" | "orange" | "green" | "red",
+ *       conditional: true,                      // optional
+ *       scaling: "0.10"                         // optional, the "x0.10" badge
+ *     }, ...]
+ *   }, ...],
+ *   upgradesFrom: "Item Name",                  // optional
+ *   upgradesTo: "Item Name"                      // optional
+ * }
+ */
+const ITEM_DETAILS = {
+  "spirit:Decay.png": {
+    innateStats: ["+8 Spirit Power", "+65 Bonus Health"],
+    abilities: [
+      {
+        type: "Active",
+        cooldown: "30s",
+        description:
+          "Inflict **damage over time** to a target, dealing damage based on their current health. " +
+          "Decay's damage is non-lethal and does not apply item procs.",
+        boxes: [
+          { type: "stat", icon: "ability-range", value: "20m", label: "Cast Range", color: "white" },
+          { type: "stat", icon: "damage-per-second", value: "2.6%/sec", label: "Bleed Damage", color: "purple", scaling: "0.10" },
+          { type: "stat", icon: "damage-resistance", value: "-50%", label: "Healing Reduction", color: "red", conditional: true },
+          { type: "footer", icon: "ability-duration", value: "10s", label: "Duration", color: "white" }
+        ]
+      }
+    ]
+  }
+};
