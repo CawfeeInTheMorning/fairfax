@@ -224,8 +224,14 @@
 
   function deselectCard() {
     if (!selectedCard) return;
+    const panel = selectedCard.el.closest(".shop-panel");
     selectedCard.el.classList.remove("selected");
     selectedCard = null;
+    // Without this, the panel's "dimming" class (added while something was
+    // selected) sticks around after deselecting — so switching away and
+    // back to that category later shows every icon still faded, since
+    // nothing is hovered/selected to exempt from the dimming rule anymore.
+    updatePanelDimming(panel);
   }
 
   function buildTooltipDisplay() {
@@ -256,12 +262,33 @@
     body.className = "tooltip-card-body";
     const desc = document.createElement("div");
     desc.className = "tooltip-card-desc";
+    // desc's innerHTML gets fully rebuilt on every hover, so this listens
+    // via delegation on the (never-replaced) desc container itself rather
+    // than on the individual upgrade-link elements, which wouldn't exist
+    // yet to attach a listener to at build time.
+    desc.addEventListener("click", (e) => {
+      const link = e.target.closest("[data-upgrade-target]");
+      if (link) jumpToItem(link.dataset.upgradeTarget);
+    });
     body.appendChild(desc);
     card.appendChild(body);
 
     tooltipDisplayEl.appendChild(card);
 
     tooltipCard = { root: card, top, name, costValue, body, desc };
+  }
+
+  // Clicking an "Upgrades To/From" link: switch to that item's category if
+  // needed, then click its actual card so the exact same select/dimming/
+  // tooltip logic as a normal click runs.
+  function jumpToItem(itemName) {
+    const found = findItemFile(itemName);
+    if (!found) return;
+    if (found.cat !== activeCategory) {
+      setActiveCategory(found.cat);
+    }
+    const box = document.querySelector('#panel-' + found.cat + ' .mod-box[data-file="' + found.file + '"]');
+    if (box) box.click();
   }
 
   function showTooltipDisplay(cat, tier, item) {
@@ -273,7 +300,7 @@
     tooltipCard.name.textContent = item.name;
     tooltipCard.costValue.textContent = tier.toLocaleString();
     tooltipCard.desc.innerHTML = details
-      ? buildTooltipBodyHtml(details, cat)
+      ? buildTooltipBodyHtml(details)
       : '<div class="tooltip-placeholder">Description coming soon.</div>';
 
     tooltipCard.root.classList.add("visible");
@@ -284,7 +311,11 @@
   }
 
   function escapeHtml(s) {
-    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   function renderInlineFormatting(text) {
@@ -297,17 +328,25 @@
     return '<img class="' + extraClass + '" src="stat_icons/' + file + '" alt="">';
   }
 
-  function buildTooltipBodyHtml(details, cat) {
+  function buildTooltipBodyHtml(details) {
     const innateHtml = (details.innateStats || []).length
-      ? '<div class="tooltip-innate-stats">' +
-        details.innateStats.map((s) => '<div class="tooltip-innate-stat">' + renderInlineFormatting(s) + "</div>").join("") +
-        "</div>"
+      ? '<div class="tooltip-innate-stats">' + details.innateStats.map(renderInnateStat).join("") + "</div>"
       : "";
 
     const sectionsHtml = (details.abilities || []).map(buildAbilitySectionHtml).join("");
-    const upgradesHtml = buildUpgradesHtml(details, cat);
+    const upgradesHtml = buildUpgradesHtml(details);
 
     return innateHtml + sectionsHtml + upgradesHtml;
+  }
+
+  // An innate stat is either a plain string, or { text, color } to tint it
+  // (e.g. a red damage-penalty line) using the same tooltip-stat-color-*
+  // classes as stat boxes.
+  function renderInnateStat(stat) {
+    const isObj = typeof stat === "object" && stat !== null;
+    const text = isObj ? stat.text : stat;
+    const colorClass = isObj && stat.color ? " tooltip-stat-color-" + stat.color : "";
+    return '<div class="tooltip-innate-stat' + colorClass + '">' + renderInlineFormatting(text) + "</div>";
   }
 
   function buildAbilitySectionHtml(section) {
@@ -318,10 +357,19 @@
         "</span>"
       : "";
 
-    const noteHtml = section.note ? '<div class="tooltip-section-note">' + renderInlineFormatting(section.note) + "</div>" : "";
-    const extraHtml = section.extraDescription
-      ? '<div class="tooltip-section-desc">' + renderInlineFormatting(section.extraDescription) + "</div>"
-      : "";
+    // Extra paragraphs after the main description, in whatever order the
+    // item calls for (a plain second paragraph, an italic side-note, or
+    // both — different items order these differently).
+    const extraHtml = (section.extraText || [])
+      .map(
+        (block) =>
+          '<div class="' +
+          (block.italic ? "tooltip-section-note" : "tooltip-section-desc") +
+          '">' +
+          renderInlineFormatting(block.text) +
+          "</div>"
+      )
+      .join("");
 
     const boxes = section.boxes || [];
     const statusBoxes = boxes.filter((b) => b.type === "status_effect");
@@ -350,7 +398,6 @@
       '<div class="tooltip-section-desc">' +
       renderInlineFormatting(section.description) +
       "</div>" +
-      noteHtml +
       extraHtml +
       statusHtml +
       statGridHtml +
@@ -404,37 +451,54 @@
     );
   }
 
-  function findItemFile(cat, name) {
-    const tiers = SHOP_DATA[cat].tiers;
-    for (const t of Object.keys(tiers)) {
-      const found = tiers[t].find((i) => i.name === name);
-      if (found) return found.file;
+  // Upgrade chains aren't always within the same category — e.g. Mystic
+  // Expansion (spirit) upgrades into Ballistic Enchantment (weapon), since
+  // the base imbue items branch into category-specific advanced imbues.
+  // So this searches every category rather than assuming the source
+  // item's own category.
+  function findItemFile(name) {
+    for (const cat of CATEGORY_ORDER) {
+      const tiers = SHOP_DATA[cat].tiers;
+      for (const t of Object.keys(tiers)) {
+        const found = tiers[t].find((i) => i.name === name);
+        if (found) return { cat, file: found.file };
+      }
     }
     return null;
   }
 
-  function buildUpgradesHtml(details, cat) {
+  function buildUpgradesHtml(details) {
     const direction = details.upgradesFrom ? "From" : details.upgradesTo ? "To" : null;
     if (!direction) return "";
-    const itemName = details.upgradesFrom || details.upgradesTo;
-    const file = findItemFile(cat, itemName);
-    const iconHtml = file
-      ? '<div class="tooltip-upgrade-icon" style="background-image:url(\'' + iconPath(cat, file) + "')\"></div>"
-      : "";
+    // A base-tier item commonly upgrades into more than one higher-tier
+    // option (e.g. Extra Spirit -> Improved Spirit + Surge of Power), so
+    // this accepts either a single name or an array of names.
+    const names = [].concat(details.upgradesFrom || details.upgradesTo);
+    const itemsHtml = names.map(renderUpgradeItem).join("");
 
     return (
       '<div class="tooltip-upgrades">' +
       '<div class="tooltip-upgrades-label">Upgrades ' +
       direction +
       ":</div>" +
-      '<div class="tooltip-upgrade-item">' +
-      iconHtml +
-      "<span>" +
-      escapeHtml(itemName) +
-      "</span>" +
+      '<div class="tooltip-upgrade-items">' +
+      itemsHtml +
       "</div>" +
       "</div>"
     );
+  }
+
+  function renderUpgradeItem(itemName) {
+    const found = findItemFile(itemName);
+    const iconHtml = found
+      ? '<div class="tooltip-upgrade-icon" style="background-image:url(\'' + iconPath(found.cat, found.file) + "')\"></div>"
+      : "";
+    // Only clickable when the target actually resolves to a real card
+    // (e.g. not a currently-legacy/disabled item with no card to jump to).
+    const attrs = found
+      ? 'class="tooltip-upgrade-item tooltip-upgrade-item-clickable" data-upgrade-target="' + escapeHtml(itemName) + '"'
+      : 'class="tooltip-upgrade-item"';
+    return "<div " + attrs + ">" + iconHtml + "<span>" + escapeHtml(itemName) + "</span></div>";
   }
 
   function applySearchFilter(query) {

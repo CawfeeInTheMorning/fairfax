@@ -263,13 +263,18 @@ const STAT_ICON_FILES = {
  * "category:File_Name.png". Shape per entry:
  *
  * {
- *   innateStats: ["+8 Spirit Power", ...],      // plain lines under cost
+ *   innateStats: [
+ *     "+8 Spirit Power",                          // plain line, default color
+ *     { text: "-10% Damage Penalty", color: "red" } // or tinted, same colors as boxes below
+ *   ],
  *   abilities: [{
  *     type: "Passive" | "Active",
  *     cooldown: "30s",                          // omit if none shown
  *     description: "Inflict **bold** text...",  // ** = highlighted span
- *     note: "small italic sub-note",             // optional
- *     extraDescription: "second paragraph",      // optional
+ *     extraText: [                              // optional, rendered in order after description
+ *       { text: "Second paragraph, not italic." },
+ *       { text: "Small italic side-note.", italic: true }
+ *     ],
  *     boxes: [{
  *       type: "stat" | "status_effect" | "footer",
  *       icon: "ability-range",                  // key into STAT_ICON_FILES
@@ -280,8 +285,8 @@ const STAT_ICON_FILES = {
  *       scaling: "0.10"                         // optional, the "x0.10" badge
  *     }, ...]
  *   }, ...],
- *   upgradesFrom: "Item Name",                  // optional
- *   upgradesTo: "Item Name"                      // optional
+ *   upgradesFrom: "Item Name" | ["Name1", "Name2"],  // optional, a base item can feed multiple upgrades
+ *   upgradesTo: "Item Name" | ["Name1", "Name2"]      // optional
  * }
  */
 const ITEM_DETAILS = {
@@ -295,12 +300,112 @@ const ITEM_DETAILS = {
           "Inflict **damage over time** to a target, dealing damage based on their current health. " +
           "Decay's damage is non-lethal and does not apply item procs.",
         boxes: [
-          { type: "stat", icon: "ability-range", value: "20m", label: "Cast Range", color: "white" },
-          { type: "stat", icon: "damage-per-second", value: "2.6%/sec", label: "Bleed Damage", color: "purple", scaling: "0.10" },
+          { type: "stat", icon: "ability-range", value: "20m", label: "Cast Range", color: "white", scaling: "0.10" },
+          { type: "stat", icon: "damage-per-second", value: "2.6%/sec", label: "Bleed Damage", color: "purple", scaling: "0.00" },
           { type: "stat", icon: "damage-resistance", value: "-50%", label: "Healing Reduction", color: "red", conditional: true },
           { type: "footer", icon: "ability-duration", value: "10s", label: "Duration", color: "white" }
         ]
       }
     ]
+  },
+
+  "spirit:Extra_Charge.png": {
+    innateStats: ["+1 Bonus Ability Charges", "+7 Bonus Spirit Power for Charged Abilities"],
+    upgradesTo: "Rapid Recharge"
+  },
+
+  "spirit:Extra_Spirit.png": {
+    innateStats: ["+10 Spirit Power"],
+    upgradesTo: ["Improved Spirit", "Surge of Power"]
+  },
+
+  "spirit:Golden_Goose_Egg.png": {
+    innateStats: [{ text: "-10% Damage Penalty", color: "red" }, "+1m Sprint Speed", "+1 Out of Combat Regen"],
+    abilities: [
+      {
+        type: "Active",
+        description: "Hatch the egg, gaining **souls** and **permanent buffs**.",
+        extraText: [
+          { text: "The value of the egg grows the longer you hold onto it." },
+          { text: "Gain a permanent buff per 80 Souls accrued when hatched.", italic: true }
+        ],
+        boxes: [{ type: "footer", icon: "souls", value: "90", label: "Soul Value per Minute", color: "white" }]
+      }
+    ]
+  },
+
+  "spirit:Mystic_Burst.png": {
+    abilities: [
+      {
+        type: "Passive",
+        description:
+          "Charges up over time with **bonus spirit damage**, causing abilities dealing more than **80** damage to deal additional damage.",
+        boxes: [
+          { type: "stat", icon: "spirit-damage", value: "40", label: "Bonus Damage", color: "purple" },
+          { type: "stat", icon: "charge-up", value: "14s", label: "Charge-Up Time", color: "white" }
+        ]
+      }
+    ],
+    upgradesTo: "Tankbuster"
+  },
+
+  "spirit:Mystic_Expansion.png": {
+    abilities: [
+      {
+        type: "Passive",
+        description: "Imbue an ability to increase its **range** and **effect radius**.",
+        boxes: [{ type: "stat", icon: "ability-range", value: "+20%", label: "Ability Range", color: "purple" }]
+      }
+    ],
+    upgradesTo: ["Greater Expansion", "Ballistic Enchantment"]
+  },
+
+  "spirit:Mystic_Regeneration.png": {
+    innateStats: ["+50 Bonus Health"],
+    abilities: [
+      {
+        type: "Passive",
+        description:
+          "Dealing **spirit damage** to enemy Heroes grants you Bonus **regeneration**. Stacks when dealing damage to different heroes.",
+        boxes: [{ type: "stat", icon: "health", value: "4 HP/s", label: "Regeneration", color: "green" }]
+      }
+    ],
+    upgradesTo: "Radiant Regeneration"
+  },
+
+  "spirit:Rusted_Barrel.png": {
+    innateStats: ["+60 Bonus Health", "+0.5m Sprint Speed"],
+    abilities: [
+      {
+        type: "Active",
+        cooldown: "16s",
+        description: "Target an enemy to reduce their **Fire Rate** and **Bullet Resistance**.",
+        boxes: [
+          { type: "stat", icon: "fire-rate", value: "-32%", label: "Fire Rate", color: "orange" },
+          { type: "stat", icon: "damage-resistance", value: "-8%", label: "Bullet Resist", color: "green", conditional: true },
+          { type: "footer", icon: "ability-range", value: "32m", label: "Cast Range", color: "white" },
+          { type: "footer", icon: "ability-duration", value: "5s", label: "Duration", color: "white" }
+        ]
+      }
+    ],
+    upgradesTo: "Disarming Hex"
+  },
+
+  "spirit:Spirit_Strike.png": {
+    abilities: [
+      {
+        type: "Passive",
+        cooldown: "8s",
+        description:
+          "When you perform a **Light or Heavy Melee** attack against a hero, deal extra **spirit damage** with the attack and reduce the target's **Spirit Resist**.",
+        extraText: [{ text: "Cooldown is 2x longer for Light Melee hits.", italic: true }],
+        boxes: [
+          { type: "stat", icon: "spirit-damage", value: "40", label: "Spirit Damage", color: "purple", scaling: "0.37" },
+          { type: "stat", icon: "damage-resistance", value: "-6%", label: "Spirit Resist", color: "green", conditional: true },
+          { type: "footer", icon: "ability-duration", value: "6s", label: "Duration", color: "white" }
+        ]
+      }
+    ],
+    upgradesTo: "Spirit Snatch"
   }
 };

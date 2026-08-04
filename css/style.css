@@ -23,6 +23,10 @@
   --panel-w: 1076px;
   --panel-h: 960px;
   --tooltip-display-h: 960px;
+  /* .tooltip-display's width at the design-time --panel-h (i.e. its
+     width when the shop panel is at native size), used as the "100%
+     scale" reference point for .tooltip-card below. */
+  --tooltip-display-native-w: calc(var(--panel-h) * 800 / 1618);
 
   /* Scattered black-dot grain texture, varied sizes/opacities for a
      random noise look. Shared via variable so it can be reused on
@@ -176,6 +180,7 @@ body {
   background-repeat: no-repeat;
   border-radius: 6px;
   overflow: hidden;
+  container-type: inline-size;
 }
 
 .category-tabs {
@@ -659,11 +664,21 @@ body {
    of the old cursor-following floating tooltip). One card is built
    once and its content/background images are swapped on hover. */
 .tooltip-card {
+  /* Built at its native size (matching .tooltip-display's own native
+     width) and scaled down as one rigid unit — same technique as
+     .tier-grid — so the 42/44/36px insets and every fixed font-size/
+     icon-size inside it shrink together with .tooltip-display instead
+     of overflowing and getting clipped once the panel (and therefore
+     .tooltip-display) shrinks below native size. */
   display: none;
   position: absolute;
-  top: 42px;
-  left: 44px;
-  right: 36px;
+  top: 0;
+  left: 0;
+  width: var(--tooltip-display-native-w);
+  padding: 42px 36px 0 44px;
+  box-sizing: border-box;
+  transform: scale(calc(100cqw / var(--tooltip-display-native-w)));
+  transform-origin: top left;
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
 }
 
@@ -769,7 +784,7 @@ body {
 
 .tooltip-section-type {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 18px;
   color: #ffffff;
 }
 
@@ -792,7 +807,7 @@ body {
 }
 
 .tooltip-section-desc {
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.5;
   color: #ece6f0;
 }
@@ -807,7 +822,7 @@ body {
 
 .tooltip-section-note {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 16px;
   font-style: italic;
   color: #a99fb5;
 }
@@ -861,8 +876,8 @@ body {
 
 .tooltip-footer-row {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 6px 16px;
   margin-top: 8px;
 }
 
@@ -876,7 +891,8 @@ body {
 }
 
 .tooltip-stat-box-footer {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 120px;
   display: flex;
   align-items: baseline;
   gap: 6px;
@@ -885,16 +901,17 @@ body {
 .tooltip-stat-icon-value {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
 }
 
 .tooltip-stat-icon {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
 }
 
 .tooltip-stat-value {
-  font-size: 15px;
+  font-size: 22px;
   font-weight: 700;
 }
 
@@ -920,8 +937,9 @@ body {
 
 .tooltip-stat-label {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: 16px;
   color: #cfc7d6;
+  text-align: center;
 }
 
 .tooltip-stat-box-footer .tooltip-stat-label {
@@ -930,29 +948,29 @@ body {
 
 .tooltip-stat-conditional {
   margin-top: 2px;
-  font-size: 9px;
+  font-size: 14px;
   font-style: italic;
   color: #a99fb5;
 }
 
 .tooltip-stat-scaling {
   position: absolute;
-  top: -6px;
-  left: -6px;
+  top: -12px;
+  left: -12px;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 1px 5px;
+  padding: 1px 10px;
   border-radius: 8px;
   background: #7d2f9c;
   color: #f4e4fb;
-  font-size: 9px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .tooltip-stat-scaling-icon {
-  width: 8px;
-  height: 8px;
+  width: 24px;
+  height: 16px;
 }
 
 /* ---------- tooltip: upgrades ---------- */
@@ -967,25 +985,41 @@ body {
 }
 
 .tooltip-upgrades-label {
-  font-size: 11px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: #a99fb5;
   white-space: nowrap;
 }
 
+.tooltip-upgrade-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
 .tooltip-upgrade-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: #ffffff;
 }
 
+.tooltip-upgrade-item-clickable {
+  cursor: pointer;
+}
+
+.tooltip-upgrade-item-clickable:hover {
+  color: #00fff5;
+  text-decoration: underline;
+}
+
 .tooltip-upgrade-icon {
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
