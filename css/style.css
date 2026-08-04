@@ -984,6 +984,15 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+/* An item can show both an "Upgrades From" and "Upgrades To" block (e.g.
+   a mid-tier item). Only the first needs the divider line separating it
+   from the content above — back-to-back blocks just need spacing. */
+.tooltip-upgrades + .tooltip-upgrades {
+  margin-top: 6px;
+  padding-top: 0;
+  border-top: none;
+}
+
 .tooltip-upgrades-label {
   font-size: 14px;
   text-transform: uppercase;

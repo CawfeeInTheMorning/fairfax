@@ -468,13 +468,19 @@
   }
 
   function buildUpgradesHtml(details) {
-    const direction = details.upgradesFrom ? "From" : details.upgradesTo ? "To" : null;
-    if (!direction) return "";
+    // A mid-tier item commonly has both a base it came from and one or
+    // more items it upgrades into (e.g. Improved Spirit shows "Upgrades
+    // From: Extra Spirit" AND "Upgrades To: Boundless Spirit"), so both
+    // directions render as separate blocks when present, not just one.
+    return buildUpgradesBlock("From", details.upgradesFrom) + buildUpgradesBlock("To", details.upgradesTo);
+  }
+
+  function buildUpgradesBlock(direction, names) {
+    if (!names) return "";
     // A base-tier item commonly upgrades into more than one higher-tier
     // option (e.g. Extra Spirit -> Improved Spirit + Surge of Power), so
     // this accepts either a single name or an array of names.
-    const names = [].concat(details.upgradesFrom || details.upgradesTo);
-    const itemsHtml = names.map(renderUpgradeItem).join("");
+    const itemsHtml = [].concat(names).map(renderUpgradeItem).join("");
 
     return (
       '<div class="tooltip-upgrades">' +
