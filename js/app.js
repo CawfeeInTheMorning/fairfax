@@ -3,16 +3,32 @@
 
   const CATEGORY_ORDER = ["weapon", "vitality", "spirit"];
   const TIER_ORDER = [800, 1600, 3200, 6400];
+  const BUILD_STORAGE_KEY = "deadlockShopBuild";
+  const BUILD_STORAGE_VERSION = 1;
+
+  // Mirrors the .mod-box / .build-section-items sizing in style.css (80x125
+  // cards, 4px gap, 12px padding on the items row, 2px section border) —
+  // used to snap section resizing to whole numbers of item columns/rows
+  // rather than arbitrary pixel sizes.
+  const ITEM_SLOT_W = 80;
+  const ITEM_SLOT_H = 125;
+  const ITEM_SLOT_GAP = 4;
+  const ITEMS_PADDING = 12; // each side of .build-section-items
+  const SECTION_BORDER = 2; // each side of .build-section
 
   const shopEl = document.getElementById("shop-panels");
   const tabsEl = document.getElementById("category-tabs");
   const tooltipDisplayEl = document.getElementById("tooltip-display");
+  const shopBuildsEl = document.getElementById("shop-builds");
   const searchTab = document.getElementById("tab-search");
 
   let searchInputEl = null;
   let tooltipCard = null;
   let selectedCard = null;
   let activeCategory = "weapon";
+  let buildState = null;
+  let sectionsContainerEl = null;
+  let dragPayload = null; // set on dragstart, read on drop (dataTransfer.getData is unreliable during dragover in some browsers)
 
   function iconPath(category, file) {
     return SHOP_DATA[category].folder + "/" + file;
@@ -213,6 +229,24 @@
       updatePanelDimming(card.closest(".shop-panel"));
     });
 
+    // draggable itself is toggled dynamically by updateShopItemUsedState()
+    // (an already-placed item shouldn't be draggable), not fixed here.
+    card.addEventListener("dragstart", (e) => {
+      if (card.classList.contains("used")) {
+        e.preventDefault();
+        return;
+      }
+      card.classList.add("dragging");
+      dragPayload = { source: "shop", category: cat, file: item.file };
+      e.dataTransfer.effectAllowed = "copy";
+      e.dataTransfer.setData("text/plain", item.file);
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+      dragPayload = null;
+      hideBuildSlotPlaceholder();
+    });
+
     return card;
   }
 
@@ -319,7 +353,11 @@
   }
 
   function renderInlineFormatting(text) {
-    return escapeHtml(text || "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    return escapeHtml(text || "")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\{\{icon:([a-z0-9-]+)\}\}/g, function (match, code) {
+        return statIconImg(code, "tooltip-inline-icon");
+      });
   }
 
   function statIconImg(code, extraClass) {
@@ -515,6 +553,553 @@
     });
   }
 
+  // ---------- Build creator ----------
+
+  function makeId(prefix) {
+    return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+  }
+
+  function loadBuildFromStorage() {
+    const fallback = { version: BUILD_STORAGE_VERSION, sections: [] };
+    let raw;
+    try {
+      raw = localStorage.getItem(BUILD_STORAGE_KEY);
+    } catch (e) {
+      return fallback;
+    }
+    if (!raw) return fallback;
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      return fallback;
+    }
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.sections)) return fallback;
+    return { version: BUILD_STORAGE_VERSION, sections: parsed.sections };
+  }
+
+  function saveBuildToStorage(state) {
+    try {
+      localStorage.setItem(BUILD_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      // Storage full/unavailable (e.g. private browsing) — the build stays
+      // usable for the rest of the session, it just won't persist.
+    }
+  }
+
+  function getPlacedItemKeys(state) {
+    const keys = new Set();
+    state.sections.forEach((section) => {
+      section.items.forEach((it) => keys.add(it.category + ":" + it.file));
+    });
+    return keys;
+  }
+
+  // Complements findItemFile (which searches by display name in the other
+  // direction) — here we already have {category, file} from stored build
+  // data and need the full item record (+ its tier) to render a card.
+  function resolveBuildItem(category, file) {
+    const tiers = SHOP_DATA[category].tiers;
+    for (const t of Object.keys(tiers)) {
+      const found = tiers[t].find((i) => i.file === file);
+      if (found) return { tier: Number(t), item: found };
+    }
+    return null;
+  }
+
+  function findSection(id) {
+    return buildState.sections.find((s) => s.id === id);
+  }
+
+  function buildShopBuildsUI() {
+    if (!shopBuildsEl) return;
+    buildState = loadBuildFromStorage();
+
+    const inner = document.createElement("div");
+    inner.className = "shop-builds-inner";
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "build-add-section-btn";
+    const addBtnIcon = document.createElement("span");
+    addBtnIcon.className = "build-add-section-icon";
+    addBtn.appendChild(addBtnIcon);
+    addBtn.appendChild(document.createTextNode("Add Section"));
+    addBtn.addEventListener("click", addBuildSection);
+    inner.appendChild(addBtn);
+
+    sectionsContainerEl = document.createElement("div");
+    sectionsContainerEl.className = "build-sections-container";
+    inner.appendChild(sectionsContainerEl);
+
+    shopBuildsEl.appendChild(inner);
+
+    // One delegated listener set on the stable container, since its
+    // contents get fully rebuilt on every add/remove/rename/reorder —
+    // same rationale as the tooltip desc delegation above, just applied
+    // more aggressively since builds change far more often than a hover.
+    sectionsContainerEl.addEventListener("click", handleSectionsClick);
+    sectionsContainerEl.addEventListener("focusout", handleSectionsFocusOut);
+    sectionsContainerEl.addEventListener("keydown", handleSectionsKeyDown);
+    sectionsContainerEl.addEventListener("mousedown", handleSectionsMouseDown);
+    sectionsContainerEl.addEventListener("dragstart", handleSectionsDragStart);
+    sectionsContainerEl.addEventListener("dragover", handleSectionsDragOver);
+    sectionsContainerEl.addEventListener("dragleave", handleSectionsDragLeave);
+    sectionsContainerEl.addEventListener("drop", handleSectionsDrop);
+    sectionsContainerEl.addEventListener("dragend", () => {
+      hideBuildSlotPlaceholder();
+      hideSectionReorderPreview();
+      const draggingEl = sectionsContainerEl.querySelector(".dragging");
+      if (draggingEl) draggingEl.classList.remove("dragging");
+    });
+
+    renderBuildSections();
+    updateShopItemUsedState();
+  }
+
+  function renderBuildSections() {
+    sectionsContainerEl.innerHTML = "";
+    if (buildState.sections.length === 0) {
+      const hint = document.createElement("div");
+      hint.className = "build-empty-hint";
+      hint.textContent = "Drag items from the shop above into a section to start building.";
+      sectionsContainerEl.appendChild(hint);
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    buildState.sections.forEach((section, index) => frag.appendChild(buildSectionEl(section, index)));
+    sectionsContainerEl.appendChild(frag);
+  }
+
+  function buildSectionEl(section) {
+    const el = document.createElement("div");
+    el.className = "build-section" + (section.optional ? " optional" : "");
+    el.dataset.sectionId = section.id;
+    if (section.width) el.style.width = section.width + "px";
+    if (section.height) el.style.height = section.height + "px";
+
+    const scroll = document.createElement("div");
+    scroll.className = "build-section-scroll";
+
+    const header = document.createElement("div");
+    header.className = "build-section-header";
+
+    const handle = document.createElement("div");
+    handle.className = "build-section-drag-handle";
+    handle.draggable = true;
+    handle.dataset.dragHandle = "1";
+    header.appendChild(handle);
+
+    const title = document.createElement("div");
+    title.className = "build-section-title";
+    title.contentEditable = "true";
+    title.spellcheck = false;
+    title.textContent = section.name;
+    title.dataset.action = "rename-section";
+    header.appendChild(title);
+
+    const optionalBadge = document.createElement("div");
+    optionalBadge.className = "build-section-optional-badge";
+    optionalBadge.textContent = "Optional";
+    optionalBadge.dataset.action = "toggle-optional";
+    header.appendChild(optionalBadge);
+
+    const deleteBtn = document.createElement("div");
+    deleteBtn.className = "build-section-delete-btn";
+    deleteBtn.textContent = "✕";
+    deleteBtn.dataset.action = "delete-section";
+    header.appendChild(deleteBtn);
+
+    scroll.appendChild(header);
+
+    const itemsEl = document.createElement("div");
+    itemsEl.className = "build-section-items";
+    section.items.forEach((it) => itemsEl.appendChild(buildBuildItemCard(it.category, it.file)));
+    scroll.appendChild(itemsEl);
+
+    el.appendChild(scroll);
+
+    const resizeHandle = document.createElement("div");
+    resizeHandle.className = "build-section-resize-handle";
+    resizeHandle.dataset.action = "resize-section";
+    el.appendChild(resizeHandle);
+
+    return el;
+  }
+
+  function buildBuildItemCard(category, file) {
+    const resolved = resolveBuildItem(category, file);
+    const wrap = document.createElement("div");
+    wrap.className = "build-item-card";
+    wrap.draggable = true;
+    wrap.dataset.category = category;
+    wrap.dataset.file = file;
+
+    if (resolved) {
+      wrap.appendChild(buildItemCard(category, resolved.tier, resolved.item));
+    }
+
+    const removeBtn = document.createElement("div");
+    removeBtn.className = "build-item-remove-btn";
+    removeBtn.dataset.action = "remove-item";
+    wrap.appendChild(removeBtn);
+
+    return wrap;
+  }
+
+  function addBuildSection() {
+    const section = { id: makeId("sec"), name: "New Section", optional: false, items: [] };
+    buildState.sections.push(section);
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+    const titleEl = sectionsContainerEl.querySelector('.build-section[data-section-id="' + section.id + '"] .build-section-title');
+    if (titleEl) {
+      titleEl.focus();
+      document.execCommand("selectAll", false, null);
+    }
+  }
+
+  function renameBuildSection(id, newName) {
+    const section = findSection(id);
+    if (!section) return;
+    const trimmed = newName.trim();
+    section.name = trimmed || section.name;
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+  }
+
+  function deleteBuildSection(id) {
+    buildState.sections = buildState.sections.filter((s) => s.id !== id);
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+    updateShopItemUsedState();
+  }
+
+  function toggleSectionOptional(id) {
+    const section = findSection(id);
+    if (!section) return;
+    section.optional = !section.optional;
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+  }
+
+  // toIndex is "insert before this position in the array as it stood
+  // before removal" — since removing fromIndex shifts everything after it
+  // back by one, that needs correcting before the insert when moving a
+  // section rightward (same subtlety as moveItemInBuild below).
+  function reorderSections(fromIndex, toIndex) {
+    if (fromIndex < 0 || toIndex < 0) return;
+    let insertAt = toIndex;
+    if (fromIndex < insertAt) insertAt -= 1;
+    if (fromIndex === insertAt) return;
+    const [moved] = buildState.sections.splice(fromIndex, 1);
+    buildState.sections.splice(insertAt, 0, moved);
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+  }
+
+  function resizeSection(id, width, height) {
+    const section = findSection(id);
+    if (!section) return;
+    section.width = width;
+    section.height = height;
+    saveBuildToStorage(buildState);
+  }
+
+  function addItemToBuild(sectionId, category, file, atIndex) {
+    if (getPlacedItemKeys(buildState).has(category + ":" + file)) return;
+    const section = findSection(sectionId);
+    if (!section) return;
+    const index = atIndex == null || atIndex > section.items.length ? section.items.length : atIndex;
+    section.items.splice(index, 0, { category, file });
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+    updateShopItemUsedState();
+  }
+
+  function moveItemInBuild(fromSectionId, fromIndex, toSectionId, toIndex) {
+    const fromSection = findSection(fromSectionId);
+    const toSection = findSection(toSectionId);
+    if (!fromSection || !toSection) return;
+    const [moved] = fromSection.items.splice(fromIndex, 1);
+    if (!moved) return;
+    let insertAt = toIndex;
+    // Removing from the same array before inserting shifts indices after
+    // the removal point back by one, so the target index needs adjusting
+    // when reordering within a single section.
+    if (fromSection === toSection && fromIndex < insertAt) insertAt -= 1;
+    if (insertAt == null || insertAt > toSection.items.length) insertAt = toSection.items.length;
+    toSection.items.splice(insertAt, 0, moved);
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+  }
+
+  function removeItemFromBuild(sectionId, index) {
+    const section = findSection(sectionId);
+    if (!section) return;
+    section.items.splice(index, 1);
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+    updateShopItemUsedState();
+  }
+
+  function updateShopItemUsedState() {
+    const used = getPlacedItemKeys(buildState);
+    document.querySelectorAll("#shop-panels .mod-box").forEach((card) => {
+      const isUsed = used.has(card.dataset.category + ":" + card.dataset.file);
+      card.classList.toggle("used", isUsed);
+      card.draggable = !isUsed;
+    });
+  }
+
+  function computeItemInsertionIndex(containerEl, clientX, clientY) {
+    const cards = [].slice.call(containerEl.querySelectorAll(":scope > .build-item-card"));
+    for (let i = 0; i < cards.length; i++) {
+      const rect = cards[i].getBoundingClientRect();
+      const rowMatch = clientY >= rect.top && clientY <= rect.bottom;
+      if (rowMatch && clientX < rect.left + rect.width / 2) return i;
+      if (!rowMatch && clientY < rect.top) return i;
+    }
+    return cards.length;
+  }
+
+  function showBuildSlotPlaceholder(containerEl, atIndex) {
+    hideBuildSlotPlaceholder();
+    const placeholder = document.createElement("div");
+    placeholder.className = "build-slot-placeholder";
+    placeholder.dataset.placeholder = "1";
+    const cards = [].slice.call(containerEl.querySelectorAll(":scope > .build-item-card"));
+    if (atIndex >= cards.length) {
+      containerEl.appendChild(placeholder);
+    } else {
+      containerEl.insertBefore(placeholder, cards[atIndex]);
+    }
+  }
+
+  function hideBuildSlotPlaceholder() {
+    const existing = sectionsContainerEl && sectionsContainerEl.querySelector(".build-slot-placeholder");
+    if (existing) existing.remove();
+  }
+
+  function computeSectionInsertionIndex(clientX, clientY) {
+    const sections = [].slice.call(sectionsContainerEl.querySelectorAll(":scope > .build-section"));
+    for (let i = 0; i < sections.length; i++) {
+      const rect = sections[i].getBoundingClientRect();
+      const rowMatch = clientY >= rect.top && clientY <= rect.bottom;
+      if (rowMatch && clientX < rect.left + rect.width / 2) return i;
+      if (!rowMatch && clientY < rect.top) return i;
+    }
+    return sections.length;
+  }
+
+  function showSectionReorderPreview(atIndex, width, height) {
+    hideSectionReorderPreview();
+    const preview = document.createElement("div");
+    preview.className = "build-section-reorder-preview";
+    preview.dataset.reorderPreview = "1";
+    preview.style.width = width + "px";
+    preview.style.height = height + "px";
+    const sections = [].slice.call(sectionsContainerEl.querySelectorAll(":scope > .build-section"));
+    if (atIndex >= sections.length) {
+      sectionsContainerEl.appendChild(preview);
+    } else {
+      sectionsContainerEl.insertBefore(preview, sections[atIndex]);
+    }
+  }
+
+  function hideSectionReorderPreview() {
+    const existing = sectionsContainerEl && sectionsContainerEl.querySelector(".build-section-reorder-preview");
+    if (existing) existing.remove();
+  }
+
+  // Resizing is a plain pointer drag (not native DnD like everything
+  // else here) — mousedown on the handle captures the section's starting
+  // size, then document-level mousemove/mouseup track the gesture since
+  // the pointer will move outside the handle itself while dragging.
+  // Section width/height snap to whatever size holds a whole number of
+  // item columns/rows — these convert between "N columns/rows" and the
+  // exact pixel size that fits them (inverses of each other).
+  function widthForColumns(n) {
+    n = Math.max(1, n);
+    return 2 * SECTION_BORDER + 2 * ITEMS_PADDING + n * ITEM_SLOT_W + (n - 1) * ITEM_SLOT_GAP;
+  }
+
+  function columnsForWidth(px) {
+    const usable = px - 2 * SECTION_BORDER - 2 * ITEMS_PADDING + ITEM_SLOT_GAP;
+    return Math.max(1, Math.round(usable / (ITEM_SLOT_W + ITEM_SLOT_GAP)));
+  }
+
+  function heightForRows(n, headerHeight) {
+    n = Math.max(1, n);
+    return 2 * SECTION_BORDER + headerHeight + 2 * ITEMS_PADDING + n * ITEM_SLOT_H + (n - 1) * ITEM_SLOT_GAP;
+  }
+
+  function rowsForHeight(px, headerHeight) {
+    const usable = px - 2 * SECTION_BORDER - headerHeight - 2 * ITEMS_PADDING + ITEM_SLOT_GAP;
+    return Math.max(1, Math.round(usable / (ITEM_SLOT_H + ITEM_SLOT_GAP)));
+  }
+
+  function startSectionResize(e, handleEl) {
+    const sectionEl = handleEl.closest(".build-section");
+    if (!sectionEl) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startRect = sectionEl.getBoundingClientRect();
+    const headerEl = sectionEl.querySelector(".build-section-header");
+    const headerHeight = headerEl.getBoundingClientRect().height;
+
+    function onMouseMove(moveEvent) {
+      const rawWidth = startRect.width + (moveEvent.clientX - startX);
+      const rawHeight = startRect.height + (moveEvent.clientY - startY);
+      const snappedWidth = widthForColumns(columnsForWidth(rawWidth));
+      const snappedHeight = heightForRows(rowsForHeight(rawHeight, headerHeight), headerHeight);
+      sectionEl.style.width = snappedWidth + "px";
+      sectionEl.style.height = snappedHeight + "px";
+    }
+
+    function onMouseUp() {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      const finalRect = sectionEl.getBoundingClientRect();
+      resizeSection(sectionEl.dataset.sectionId, Math.round(finalRect.width), Math.round(finalRect.height));
+    }
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }
+
+  function handleSectionsClick(e) {
+    const deleteBtn = e.target.closest('[data-action="delete-section"]');
+    if (deleteBtn) {
+      const section = deleteBtn.closest(".build-section");
+      if (section) deleteBuildSection(section.dataset.sectionId);
+      return;
+    }
+    const optionalBtn = e.target.closest('[data-action="toggle-optional"]');
+    if (optionalBtn) {
+      const section = optionalBtn.closest(".build-section");
+      if (section) toggleSectionOptional(section.dataset.sectionId);
+      return;
+    }
+    const removeBtn = e.target.closest('[data-action="remove-item"]');
+    if (removeBtn) {
+      const itemCard = removeBtn.closest(".build-item-card");
+      const section = removeBtn.closest(".build-section");
+      if (itemCard && section) {
+        const items = [].slice.call(section.querySelectorAll(":scope > .build-section-items > .build-item-card"));
+        removeItemFromBuild(section.dataset.sectionId, items.indexOf(itemCard));
+      }
+    }
+  }
+
+  function handleSectionsFocusOut(e) {
+    const title = e.target.closest(".build-section-title");
+    if (!title) return;
+    const section = title.closest(".build-section");
+    if (section) renameBuildSection(section.dataset.sectionId, title.textContent);
+  }
+
+  function handleSectionsKeyDown(e) {
+    if (e.key !== "Enter") return;
+    const title = e.target.closest(".build-section-title");
+    if (!title) return;
+    e.preventDefault();
+    title.blur();
+  }
+
+  function handleSectionsMouseDown(e) {
+    const handle = e.target.closest('[data-action="resize-section"]');
+    if (handle) startSectionResize(e, handle);
+  }
+
+  function handleSectionsDragStart(e) {
+    const handle = e.target.closest('[data-drag-handle="1"]');
+    if (handle) {
+      const section = handle.closest(".build-section");
+      const index = [].indexOf.call(sectionsContainerEl.querySelectorAll(".build-section"), section);
+      const rect = section.getBoundingClientRect();
+      dragPayload = {
+        source: "section",
+        sectionId: section.dataset.sectionId,
+        index,
+        width: rect.width,
+        height: rect.height,
+      };
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", section.dataset.sectionId);
+      return;
+    }
+    const itemCard = e.target.closest(".build-item-card");
+    if (itemCard) {
+      const section = itemCard.closest(".build-section");
+      const items = [].slice.call(section.querySelectorAll(":scope > .build-section-items > .build-item-card"));
+      dragPayload = {
+        source: "build",
+        sectionId: section.dataset.sectionId,
+        index: items.indexOf(itemCard),
+        category: itemCard.dataset.category,
+        file: itemCard.dataset.file,
+      };
+      itemCard.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", itemCard.dataset.file);
+    }
+  }
+
+  function handleSectionsDragOver(e) {
+    if (!dragPayload) return;
+    if (dragPayload.source === "section") {
+      if (!sectionsContainerEl.contains(e.target)) return;
+      e.preventDefault();
+      const index = computeSectionInsertionIndex(e.clientX, e.clientY);
+      showSectionReorderPreview(index, dragPayload.width, dragPayload.height);
+      return;
+    }
+    const itemsEl = e.target.closest(".build-section-items");
+    if (!itemsEl) return;
+    e.preventDefault();
+    const index = computeItemInsertionIndex(itemsEl, e.clientX, e.clientY);
+    showBuildSlotPlaceholder(itemsEl, index);
+  }
+
+  function handleSectionsDragLeave(e) {
+    const itemsEl = e.target.closest(".build-section-items");
+    if (itemsEl && !itemsEl.contains(e.relatedTarget)) hideBuildSlotPlaceholder();
+    if (dragPayload && dragPayload.source === "section" && !sectionsContainerEl.contains(e.relatedTarget)) {
+      hideSectionReorderPreview();
+    }
+  }
+
+  function handleSectionsDrop(e) {
+    if (!dragPayload) return;
+    if (dragPayload.source === "section") {
+      e.preventDefault();
+      const toIndex = computeSectionInsertionIndex(e.clientX, e.clientY);
+      hideSectionReorderPreview();
+      reorderSections(dragPayload.index, toIndex);
+      dragPayload = null;
+      return;
+    }
+
+    const itemsEl = e.target.closest(".build-section-items");
+    hideBuildSlotPlaceholder();
+    if (!itemsEl) {
+      dragPayload = null;
+      return;
+    }
+    e.preventDefault();
+    const targetSection = itemsEl.closest(".build-section");
+    const toIndex = computeItemInsertionIndex(itemsEl, e.clientX, e.clientY);
+
+    if (dragPayload.source === "shop") {
+      addItemToBuild(targetSection.dataset.sectionId, dragPayload.category, dragPayload.file, toIndex);
+    } else if (dragPayload.source === "build") {
+      moveItemInBuild(dragPayload.sectionId, dragPayload.index, targetSection.dataset.sectionId, toIndex);
+    }
+    dragPayload = null;
+  }
+
   function syncTooltipDisplayHeight() {
     const ro = new ResizeObserver((entries) => {
       const h = entries[0].contentRect.height;
@@ -525,9 +1110,34 @@
     ro.observe(shopEl);
   }
 
+  // Keeps .shop-builds' left/right edges aligned with #shop-panels and
+  // .tooltip-display combined (i.e. everything except .category-tabs),
+  // since that combined region isn't a single element we can just copy
+  // width/position from — it has to be measured and kept in sync as the
+  // panels/tooltip-display scale with the viewport.
+  function syncShopBuildsAlignment() {
+    if (!shopBuildsEl) return;
+    function update() {
+      const panelsRect = shopEl.getBoundingClientRect();
+      const tooltipRect = tooltipDisplayEl.getBoundingClientRect();
+      const width = tooltipRect.right - panelsRect.left;
+      if (width > 0) {
+        shopBuildsEl.style.width = width + "px";
+        shopBuildsEl.style.marginLeft = panelsRect.left + window.scrollX + "px";
+      }
+    }
+    const ro = new ResizeObserver(update);
+    ro.observe(shopEl);
+    ro.observe(tooltipDisplayEl);
+    window.addEventListener("resize", update);
+    update();
+  }
+
   buildTooltipDisplay();
   buildTabs();
   buildPanels();
   buildSearchPanel();
+  buildShopBuildsUI();
   syncTooltipDisplayHeight();
+  syncShopBuildsAlignment();
 })();

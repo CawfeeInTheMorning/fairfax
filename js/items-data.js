@@ -236,6 +236,7 @@ const STAT_ICON_FILES = {
   "damage-barrier": "damage-barrier-icon.png",
   "damage-per-second": "damage-per-second-icon.png",
   "damage-resistance": "damage-resistance-icon.png",
+  "dash-distance": "stamina-icon.png",
   "debuff-resist": "debuff-resist-icon.png",
   "duration": "duration-icon.png",
   "fire-rate": "fire-rate-icon.png",
@@ -256,6 +257,14 @@ const STAT_ICON_FILES = {
   "spirit-scaling": "spirit-scaling-icon.png",
   "stack": "stack-icon.png",
   "stamina": "stamina-icon.png",
+  "status-bleed": "status effects/bleed-status.png",
+  "status-burn": "status effects/burn-status.webp",
+  "status-damage-reduction": "status effects/damage-per-second-status.webp",
+  "status-disarm": "status effects/disarm-status.webp",
+  "status-move-slow": "status effects/move-slow-status.png",
+  "status-silence": "status effects/silence-status.webp",
+  "status-stun": "status effects/stun-status.webp",
+  "status-weapon-damage-buff": "status effects/bullet-damage-status.webp",
   "weapon-damage": "weapon-damage-icon.png"
 };
 
@@ -298,12 +307,12 @@ const ITEM_DETAILS = {
         type: "Active",
         cooldown: "30s",
         description:
-          "Inflict **damage over time** to a target, dealing damage based on their current health. " +
+          "Inflict **damage over time**{{icon:status-bleed}} to a target, dealing damage based on their current health. " +
           "Decay's damage is non-lethal and does not apply item procs.",
         boxes: [
           { type: "stat", icon: "ability-range", value: "20m", label: "Cast Range", color: "white", scaling: "0.10" },
           { type: "stat", icon: "damage-per-second", value: "2.6%/sec", label: "Bleed Damage", color: "purple", scaling: "0.00" },
-          { type: "stat", icon: "damage-resistance", value: "-50%", label: "Healing Reduction", color: "red", conditional: true },
+          { type: "stat", icon: "status-damage-reduction", value: "-50%", label: "Healing Reduction", color: "red", conditional: true },
           { type: "footer", icon: "ability-duration", value: "10s", label: "Duration", color: "white" }
         ]
       }
@@ -451,7 +460,7 @@ const ITEM_DETAILS = {
         description: "Release an expanding ice blast that deals **spirit damage** and **Slows** targets it hits.",
         boxes: [
           { type: "stat", icon: "spirit-damage", value: "95", label: "Damage", color: "purple", scaling: "0.47" },
-          { type: "stat", icon: "move-speed", value: "-60%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "stat", icon: "status-move-slow", value: "-60%", label: "Move Speed", color: "purple", conditional: true },
           { type: "stat", icon: "ability-duration", value: "4s", label: "Duration", color: "purple" },
           { type: "footer", icon: "ability-range", value: "10m", label: "End Radius", color: "white" }
         ]
@@ -495,8 +504,8 @@ const ITEM_DETAILS = {
         type: "Passive",
         description: "When the target takes **spirit damage**, they have their **Move Speed** reduced.",
         boxes: [
-          { type: "stat", icon: "move-speed", value: "-30%", label: "Move Speed", color: "purple", conditional: true },
-          { type: "stat", icon: "move-speed", value: "-12%", label: "Dash Distance", color: "purple", conditional: true },
+          { type: "stat", icon: "status-move-slow", value: "-30%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "stat", icon: "dash-distance", value: "-12%", label: "Dash Distance", color: "purple", conditional: true },
           { type: "footer", icon: "ability-duration", value: "2s", label: "Duration", color: "white" }
         ]
       }
@@ -548,8 +557,8 @@ const ITEM_DETAILS = {
           { text: "Does not affect target's stamina usage.", italic: true }
         ],
         boxes: [
-          { type: "stat", icon: "move-speed", value: "-20%", label: "Move Speed", color: "purple", conditional: true },
-          { type: "stat", icon: "move-speed", value: "-30%", label: "Dash Distance", color: "purple", conditional: true },
+          { type: "stat", icon: "status-move-slow", value: "-20%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "stat", icon: "dash-distance", value: "-30%", label: "Dash Distance", color: "purple", conditional: true },
           { type: "footer", icon: "ability-range", value: "25m", label: "Cast Range", color: "white" },
           { type: "footer", icon: "ability-duration", value: "3.5s", label: "Duration", color: "white" }
         ]
@@ -598,7 +607,7 @@ const ITEM_DETAILS = {
         cooldown: "16s",
         description: "**Disarms** enemy target and reduces their **Bullet Resist**.",
         boxes: [
-          { type: "status_effect", label: "Disarmed" },
+          { type: "status_effect", icon: "status-disarm", label: "Disarmed" },
           { type: "stat", icon: "damage-resistance", value: "-13%", label: "Bullet Resist", color: "green", conditional: true },
           { type: "footer", icon: "ability-range", value: "32m", label: "Cast Range", color: "white" },
           { type: "footer", icon: "ability-duration", value: "4.25s", label: "Duration", color: "white" }
@@ -629,7 +638,7 @@ const ITEM_DETAILS = {
         description: "Apply a **Stun** after **2s**. Stun duration is increased against **airborne** targets.",
         extraText: [{ text: "Increases the target's gravity for the duration of the stun.", italic: true }],
         boxes: [
-          { type: "status_effect", label: "Stun" },
+          { type: "status_effect", icon: "status-stun", label: "Stun" },
           { type: "stat", icon: "ability-duration", value: "0.5s", label: "Stun Duration", color: "purple" },
           { type: "footer", icon: "ability-range", value: "45m", label: "Cast Range", color: "white" }
         ]
@@ -682,7 +691,7 @@ const ITEM_DETAILS = {
         description: "Launch an expanding projectile which **Silences** enemies for a short duration and deals impact damage.",
         extraText: [{ text: "Silence does not interrupt channeling abilities.", italic: true }],
         boxes: [
-          { type: "status_effect", label: "Silenced" },
+          { type: "status_effect", icon: "status-silence", label: "Silenced" },
           { type: "stat", icon: "spirit-damage", value: "75", label: "Damage", color: "purple", scaling: "0.70" },
           { type: "footer", icon: "ability-range", value: "40m", label: "Cast Range", color: "white" },
           { type: "footer", icon: "ability-duration", value: "3s", label: "Silence Duration", color: "white" }
@@ -817,8 +826,8 @@ const ITEM_DETAILS = {
           "Curses an enemy - **interrupting**, **Silencing**, **Disarming**, and **preventing item usage**. **Removes all non-ultimate buffs**.",
         extraText: [{ text: "Your own **Damage Output** is reduced for the duration." }],
         boxes: [
-          { type: "status_effect", label: "Silenced" },
-          { type: "status_effect", label: "Disarmed" },
+          { type: "status_effect", icon: "status-silence", label: "Silenced" },
+          { type: "status_effect", icon: "status-disarm", label: "Disarmed" },
           { type: "footer", icon: "ability-duration", value: "3.25s", label: "Duration", color: "white" },
           { type: "footer", icon: "ability-range", value: "20m", label: "Cast Range", color: "white" },
           { type: "footer", icon: "damage-amplification", value: "-25%", label: "Damage Penalty", color: "red" }
@@ -905,7 +914,7 @@ const ITEM_DETAILS = {
         type: "Passive",
         description: "Damage from your ultimate applies a **stun** and deals **bonus spirit damage** after a short delay.",
         boxes: [
-          { type: "status_effect", label: "Stun" },
+          { type: "status_effect", icon: "status-stun", label: "Stun" },
           { type: "stat", icon: "ability-duration", value: "0.75s", label: "Stun Duration", color: "white" },
           { type: "stat", icon: "spirit-damage", value: "150", label: "Damage", color: "purple" },
           { type: "footer", icon: "ability-duration", value: "3s", label: "Delay Before Effect", color: "white" }
@@ -972,7 +981,7 @@ const ITEM_DETAILS = {
         boxes: [
           { type: "stat", icon: "pure-damage", value: "50%", label: "Damage", color: "red", conditional: true },
           { type: "stat", icon: "lifesteal", value: "+22%", label: "Imbued Lifesteal", color: "green" },
-          { type: "stat", icon: "move-speed", value: "-40%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "stat", icon: "status-move-slow", value: "-40%", label: "Move Speed", color: "purple", conditional: true },
           { type: "footer", icon: "ability-range", value: "16m", label: "Radius", color: "white" },
           { type: "footer", icon: "ability-duration", value: "3s", label: "Delay Duration", color: "white" }
         ]
@@ -1017,17 +1026,17 @@ const ITEM_DETAILS = {
       {
         type: "Passive",
         description:
-          "Dealing significant **spirit damage** to an enemy within 5s causes an explosion dealing damage and a burn to that enemy. While burning, enemies take damage over time and receive reduced healing.",
+          "Dealing significant **spirit damage** to an enemy within 5s causes an explosion dealing damage and a burn{{icon:status-burn}} to that enemy. While burning{{icon:status-burn}}, enemies take damage over time and receive reduced healing.",
         extraText: [
           { text: "The cooldown is per enemy, so each target can only be burned once per cooldown. Deals half-damage on non-heroes.", italic: true }
         ],
         boxes: [
-          { type: "stat", icon: "damage-amplification", value: "500", label: "Damage Threshold", color: "white" },
+          { type: "stat", icon: "build-up", value: "500", label: "Damage Threshold", color: "white" },
           { type: "stat", icon: "spirit-damage", value: "50", label: "Explosion Damage", color: "purple" },
           { type: "stat", icon: "damage-per-second", value: "24", label: "Damage Per Second", color: "purple", scaling: "0.06" },
           { type: "footer", icon: "ability-duration", value: "20s", label: "Immunity Duration", color: "white" },
           { type: "footer", icon: "ability-duration", value: "8s", label: "Debuff Duration", color: "white" },
-          { type: "footer", icon: "damage-resistance", value: "-70%", label: "Healing Reduction", color: "red" }
+          { type: "footer", icon: "status-damage-reduction", value: "-70%", label: "Healing Reduction", color: "red" }
         ]
       }
     ]
@@ -1058,9 +1067,9 @@ const ITEM_DETAILS = {
         extraText: [{ text: "Alt Cast to Target Unit Directly.", italic: true }],
         boxes: [
           { type: "stat", icon: "ability-range", value: "12m", label: "Capture Radius", color: "white" },
-          { type: "stat", icon: "move-speed", value: "-35%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "stat", icon: "status-move-slow", value: "-35%", label: "Move Speed", color: "purple", conditional: true },
           { type: "footer", icon: "ability-duration", value: "4s", label: "Duration", color: "white" },
-          { type: "footer", icon: "move-speed", value: "-40%", label: "Dash Distance", color: "purple" }
+          { type: "footer", icon: "dash-distance", value: "-40%", label: "Dash Distance", color: "purple" }
         ]
       }
     ],
@@ -1075,7 +1084,7 @@ const ITEM_DETAILS = {
         description: "Deal additional **Weapon Damage** when in **close range** to your target.",
         boxes: [
           { type: "stat", icon: "weapon-damage", value: "+20%", label: "Weapon Damage", color: "orange", conditional: true },
-          { type: "stat", value: "15m", label: "Close Range", color: "white" }
+          { type: "stat", icon: "ability-range", value: "15m", label: "Close Range", color: "white" }
         ]
       }
     ],
@@ -1259,7 +1268,7 @@ const ITEM_DETAILS = {
         cooldown: "25s",
         description: "Dealing significant **weapon damage** replenishes a charge for **each of your charged abilities**.",
         boxes: [
-          { type: "stat", value: "200", label: "Damage Threshold", color: "white" },
+          { type: "stat", icon: "build-up", value: "200", label: "Damage Threshold", color: "white" },
           { type: "stat", icon: "ability-duration", value: "3.5s", label: "Time Frame", color: "white" }
         ]
       }
@@ -1272,10 +1281,10 @@ const ITEM_DETAILS = {
         type: "Passive",
         description: "Your bullets build up a **Movement Slow** on enemies.",
         boxes: [
-          { type: "stat", icon: "move-speed", value: "-30%", label: "Move Speed", color: "purple", conditional: true },
-          { type: "footer", value: "-22%", label: "Dash Distance", color: "white" },
+          { type: "stat", icon: "status-move-slow", value: "-30%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "footer", icon: "dash-distance", value: "-22%", label: "Dash Distance", color: "white" },
           { type: "footer", icon: "ability-duration", value: "3.5s", label: "Slow Duration", color: "white" },
-          { type: "footer", value: "0.7%", label: "Buildup Per Shot", color: "white" }
+          { type: "footer", icon: "build-up", value: "0.7%", label: "Buildup Per Shot", color: "white" }
         ]
       }
     ],
@@ -1310,7 +1319,7 @@ const ITEM_DETAILS = {
         ],
         boxes: [
           { type: "stat", icon: "fire-rate", value: "5", label: "Weapon Multishot", color: "white", conditional: true },
-          { type: "stat", icon: "weapon-damage", value: "+8%", label: "Weapon Damage per Stack", color: "orange" },
+          { type: "stat", icon: "status-weapon-damage-buff", value: "+8%", label: "Weapon Damage per Stack", color: "orange" },
           { type: "footer", icon: "ability-duration", value: "5s", label: "Buff Duration", color: "white" },
           { type: "footer", icon: "stack", value: "5", label: "Max Stacks", color: "white" },
           { type: "footer", icon: "ability-duration", value: "12s", label: "Stack Duration", color: "white" }
@@ -1410,7 +1419,7 @@ const ITEM_DETAILS = {
         type: "Passive",
         description: "Your **Weapon Damage** increases as you take sustained damage.",
         boxes: [
-          { type: "stat", icon: "weapon-damage", value: "+7%", label: "Weapon Damage per Stack", color: "orange" },
+          { type: "stat", icon: "status-weapon-damage-buff", value: "+7%", label: "Weapon Damage per Stack", color: "orange" },
           { type: "footer", value: "120", label: "Damage taken to Stack", color: "white" },
           { type: "footer", value: "10", label: "Max Stacks", color: "white" },
           { type: "footer", icon: "ability-duration", value: "10s", label: "Duration", color: "white" }
@@ -1589,7 +1598,7 @@ const ITEM_DETAILS = {
         description: "When in **close range** to your target, gain **Weapon Damage** and your bullets apply a **Movement Slow**.",
         boxes: [
           { type: "stat", icon: "weapon-damage", value: "+50%", label: "Weapon Damage", color: "orange" },
-          { type: "stat", icon: "move-speed", value: "-25%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "stat", icon: "status-move-slow", value: "-25%", label: "Move Speed", color: "purple", conditional: true },
           { type: "footer", icon: "ability-duration", value: "2s", label: "Slow Duration", color: "white" },
           { type: "footer", icon: "ability-range", value: "15m", label: "Close Range", color: "white" }
         ]
@@ -1695,12 +1704,12 @@ const ITEM_DETAILS = {
       {
         type: "Passive",
         description:
-          "Your bullets build up a **Bleed** on enemies, causing them to lose a **percentage** of their **Max Health** over time. Also applies **Healing Reduction** on the bleeding target.",
+          "Your bullets build up a **Bleed**{{icon:status-bleed}} on enemies, causing them to lose a **percentage** of their **Max Health** over time. Also applies **Healing Reduction** on the bleeding target.",
         boxes: [
           { type: "stat", icon: "damage-per-second", value: "1.9%/sec", label: "Bleed Damage", color: "purple", scaling: "0.01" },
-          { type: "stat", icon: "damage-resistance", value: "-35%", label: "Healing Reduction", color: "red", conditional: true },
+          { type: "stat", icon: "status-damage-reduction", value: "-35%", label: "Healing Reduction", color: "red", conditional: true },
           { type: "footer", icon: "ability-duration", value: "4s", label: "Duration", color: "white" },
-          { type: "footer", value: "1.28%", label: "Buildup Per Shot", color: "white" }
+          { type: "footer", icon: "build-up", value: "1.28%", label: "Buildup Per Shot", color: "white" }
         ]
       }
     ]
@@ -1718,10 +1727,10 @@ const ITEM_DETAILS = {
         type: "Passive",
         description: "Your bullets build up a **Movement Slow** on enemies.",
         boxes: [
-          { type: "stat", icon: "move-speed", value: "-30%", label: "Move Speed", color: "purple", conditional: true },
-          { type: "footer", value: "-22%", label: "Dash Distance", color: "white" },
+          { type: "stat", icon: "status-move-slow", value: "-30%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "footer", icon: "dash-distance", value: "-22%", label: "Dash Distance", color: "white" },
           { type: "footer", icon: "ability-duration", value: "3.5s", label: "Slow Duration", color: "white" },
-          { type: "footer", value: "0.7%", label: "Buildup Per Shot", color: "white" }
+          { type: "footer", icon: "build-up", value: "0.7%", label: "Buildup Per Shot", color: "white" }
         ]
       }
     ],
@@ -1762,7 +1771,7 @@ const ITEM_DETAILS = {
           "Launch a projectile that deals **damage**, applies a strong slow that recovers over time, **prevents Stamina usage** and **Silences** their **movement-based items and abilities**.",
         boxes: [
           { type: "stat", icon: "spirit-damage", value: "100", label: "Damage", color: "purple" },
-          { type: "stat", icon: "move-speed", value: "-75%", label: "Max Move Speed", color: "purple", conditional: true },
+          { type: "stat", icon: "status-move-slow", value: "-75%", label: "Max Move Speed", color: "purple", conditional: true },
           { type: "footer", icon: "ability-duration", value: "3s", label: "Slow Duration", color: "white" }
         ]
       }
@@ -1780,7 +1789,7 @@ const ITEM_DETAILS = {
         boxes: [
           { type: "stat", icon: "damage-resistance", value: "-16%", label: "Bullet Resist", color: "green", conditional: true },
           { type: "stat", icon: "damage-resistance", value: "-16%", label: "Spirit Resist", color: "green", conditional: true },
-          { type: "stat", icon: "damage-resistance", value: "-35%", label: "Healing Reduction", color: "red", conditional: true },
+          { type: "stat", icon: "status-damage-reduction", value: "-35%", label: "Healing Reduction", color: "red", conditional: true },
           { type: "footer", icon: "ability-duration", value: "12s", label: "Debuff Duration", color: "white" }
         ]
       }
@@ -1883,7 +1892,7 @@ const ITEM_DETAILS = {
         type: "Passive",
         description: "Your bullets reduce the target's **outgoing spirit damage**.",
         boxes: [
-          { type: "stat", icon: "spirit-damage", value: "-25%", label: "Spirit Damage Reduction", color: "purple", conditional: true },
+          { type: "stat", icon: "status-damage-reduction", value: "-25%", label: "Spirit Damage Reduction", color: "purple", conditional: true },
           { type: "footer", icon: "ability-duration", value: "6s", label: "Debuff Duration", color: "white" }
         ]
       },
@@ -1891,10 +1900,10 @@ const ITEM_DETAILS = {
         type: "Passive",
         description: "Your bullets build up to a **Silence**. Victims are immune to the build up for **10s** after silence expires.",
         boxes: [
-          { type: "status_effect", label: "Silenced" },
+          { type: "status_effect", icon: "status-silence", label: "Silenced" },
           { type: "footer", icon: "ability-duration", value: "2.5s", label: "Silence Duration", color: "white" },
           { type: "footer", icon: "ability-duration", value: "10s", label: "Immunity Duration", color: "white" },
-          { type: "footer", value: "1.04%", label: "Buildup Per Shot", color: "white" }
+          { type: "footer", icon: "build-up", value: "1.04%", label: "Buildup Per Shot", color: "white" }
         ]
       }
     ]
@@ -1929,7 +1938,7 @@ const ITEM_DETAILS = {
           { type: "stat", icon: "fire-rate", value: "+30%", label: "Fire Rate", color: "orange" },
           { type: "stat", icon: "spirit-power", value: "+40", label: "Spirit Power", color: "purple" },
           { type: "stat", icon: "lifesteal", value: "+10%", label: "Spirit Lifesteal", color: "green" },
-          { type: "footer", value: "0.75%", label: "Buildup Per Shot", color: "white" },
+          { type: "footer", icon: "build-up", value: "0.75%", label: "Buildup Per Shot", color: "white" },
           { type: "footer", icon: "ability-duration", value: "15s", label: "Duration", color: "white" }
         ]
       }
@@ -2112,7 +2121,7 @@ const ITEM_DETAILS = {
         description:
           "Your **spirit damage** applies **Healing Reduction**. If an enemy hero dies under this effect, you receive a large heal.",
         boxes: [
-          { type: "stat", icon: "damage-resistance", value: "-35%", label: "Healing Reduction", color: "red", conditional: true },
+          { type: "stat", icon: "status-damage-reduction", value: "-35%", label: "Healing Reduction", color: "red", conditional: true },
           { type: "stat", icon: "lifesteal", value: "275", label: "Heal On Hero Kill", color: "green" },
           { type: "footer", icon: "ability-duration", value: "8s", label: "Duration", color: "white" }
         ]
@@ -2201,7 +2210,7 @@ const ITEM_DETAILS = {
         boxes: [
           { type: "stat", icon: "damage-barrier", value: "300", label: "Barrier", color: "green", conditional: true, scaling: "5.00" },
           { type: "stat", icon: "damage-resistance", value: "+18%", label: "Spirit Resist", color: "purple", conditional: true },
-          { type: "footer", value: "225", label: "Damage Threshold", color: "white" },
+          { type: "footer", icon: "build-up", value: "225", label: "Damage Threshold", color: "white" },
           { type: "footer", icon: "ability-duration", value: "3.5s", label: "Time Frame", color: "white" },
           { type: "footer", icon: "ability-duration", value: "8s", label: "Barrier Duration", color: "white" }
         ]
@@ -2239,7 +2248,7 @@ const ITEM_DETAILS = {
         boxes: [
           { type: "stat", icon: "damage-barrier", value: "300", label: "Barrier", color: "green", conditional: true, scaling: "5.00" },
           { type: "stat", icon: "damage-resistance", value: "+18%", label: "Bullet Resist", color: "orange", conditional: true },
-          { type: "footer", value: "250", label: "Damage Threshold", color: "white" },
+          { type: "footer", icon: "build-up", value: "250", label: "Damage Threshold", color: "white" },
           { type: "footer", icon: "ability-duration", value: "4s", label: "Time Frame", color: "white" },
           { type: "footer", icon: "ability-duration", value: "8s", label: "Barrier Duration", color: "white" }
         ]
@@ -2365,7 +2374,7 @@ const ITEM_DETAILS = {
           { text: "Cooldown is 1.5x as long for Light Melee hits.", italic: true }
         ],
         boxes: [
-          { type: "stat", icon: "move-speed", value: "-60%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "stat", icon: "status-move-slow", value: "-60%", label: "Move Speed", color: "purple", conditional: true },
           { type: "stat", icon: "lifesteal", value: "100", label: "Heal on Melee Hit", color: "green" },
           { type: "stat", icon: "lifesteal", value: "30%", label: "Melee Hit Heal", color: "green" },
           { type: "footer", icon: "ability-duration", value: "2.5s", label: "Slow Duration", color: "white" }
@@ -2402,7 +2411,7 @@ const ITEM_DETAILS = {
         description: "Become **immune to bullets**.",
         boxes: [
           { type: "footer", value: "-1.5m", label: "Active Movespeed Penalty", color: "red" },
-          { type: "footer", value: "-20%", label: "Dash Distance", color: "white" },
+          { type: "footer", icon: "dash-distance", value: "-20%", label: "Dash Distance", color: "white" },
           { type: "footer", icon: "ability-duration", value: "5s", label: "Duration", color: "white" }
         ]
       }
@@ -2496,7 +2505,7 @@ const ITEM_DETAILS = {
         boxes: [
           { type: "stat", icon: "ability-duration", value: "4.5s", label: "Death Immunity Duration", color: "white" },
           { type: "stat", value: "-60%", label: "Damage Reduction", color: "red" },
-          { type: "stat", value: "-60%", label: "Healing Reduction", color: "red" }
+          { type: "stat", icon: "status-damage-reduction", value: "-60%", label: "Healing Reduction", color: "red" }
         ]
       }
     ]
@@ -2514,7 +2523,7 @@ const ITEM_DETAILS = {
           { type: "stat", icon: "damage-resistance", value: "35%", label: "Bullet Resist", color: "orange", conditional: true },
           { type: "stat", icon: "damage-resistance", value: "35%", label: "Spirit Resist", color: "purple", conditional: true },
           { type: "stat", icon: "melee-damage", value: "+30%", label: "Melee Damage", color: "orange", conditional: true },
-          { type: "stat", icon: "move-speed", value: "-30%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "stat", icon: "status-move-slow", value: "-30%", label: "Move Speed", color: "purple", conditional: true },
           { type: "footer", icon: "ability-range", value: "14m", label: "Radius", color: "white" },
           { type: "footer", icon: "ability-duration", value: "7s", label: "Duration", color: "white" },
           { type: "footer", value: "20%", label: "Model Scale", color: "white" }
@@ -2617,10 +2626,10 @@ const ITEM_DETAILS = {
         type: "Passive",
         description: "Your bullets build up to reduce the target's **outgoing damage** and apply **healing reduction**.",
         boxes: [
-          { type: "stat", icon: "pure-damage", value: "-30%", label: "Damage Penalty", color: "red", conditional: true },
-          { type: "stat", icon: "pure-damage", value: "-40%", label: "Healing Reduction", color: "red", conditional: true },
+          { type: "stat", icon: "status-damage-reduction", value: "-30%", label: "Damage Penalty", color: "red", conditional: true },
+          { type: "stat", icon: "status-damage-reduction", value: "-40%", label: "Healing Reduction", color: "red", conditional: true },
           { type: "footer", icon: "ability-duration", value: "5s", label: "Debuff Duration", color: "white" },
-          { type: "footer", value: "0.77%", label: "Buildup Per Shot", color: "white" }
+          { type: "footer", icon: "build-up", value: "0.77%", label: "Buildup Per Shot", color: "white" }
         ]
       }
     ]
@@ -2640,8 +2649,8 @@ const ITEM_DETAILS = {
         description:
           "**Teleport** to an enemy target and pull them to the ground. Dealing **damage**, **Move speed** reduction and **Disarm**.",
         boxes: [
-          { type: "status_effect", label: "Disarmed" },
-          { type: "stat", icon: "move-speed", value: "-50%", label: "Move Speed", color: "purple", conditional: true },
+          { type: "status_effect", icon: "status-disarm", label: "Disarmed" },
+          { type: "stat", icon: "status-move-slow", value: "-50%", label: "Move Speed", color: "purple", conditional: true },
           { type: "stat", icon: "spirit-damage", value: "75", label: "Impact Damage", color: "purple", scaling: "0.93" },
           { type: "footer", icon: "ability-range", value: "25m", label: "Cast Range", color: "white" },
           { type: "footer", icon: "ability-duration", value: "3s", label: "Debuff Duration", color: "white" }
@@ -2690,7 +2699,7 @@ const ITEM_DETAILS = {
         description: "The next instance of high **spirit damage** you take is significantly reduced.",
         boxes: [
           { type: "stat", icon: "damage-resistance", value: "65%", label: "Spirit Damage Reduction", color: "purple" },
-          { type: "stat", value: "175", label: "Damage Threshold", color: "white" }
+          { type: "stat", icon: "build-up", value: "175", label: "Damage Threshold", color: "white" }
         ]
       }
     ],
@@ -2739,7 +2748,7 @@ const ITEM_DETAILS = {
         description: "Taking heavy hits of **spirit damage** from an enemy reduces a **random ability cooldown**.",
         boxes: [
           { type: "stat", icon: "ability-cooldown", value: "4s", label: "Cooldown Reduction per Hit", color: "white" },
-          { type: "stat", value: "75", label: "Damage Threshold", color: "white" }
+          { type: "stat", icon: "build-up", value: "75", label: "Damage Threshold", color: "white" }
         ]
       }
     ]

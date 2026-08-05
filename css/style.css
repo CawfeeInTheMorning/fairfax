@@ -156,9 +156,9 @@ body {
   justify-content: center;
   align-items: flex-start;
   gap: 0;
-  padding: 20px;
+  padding: 20px 20px 0;
   max-width: 1700px;
-  margin: 0 auto 60px;
+  margin: 0 auto 6px;
 }
 
 .tooltip-display {
@@ -181,6 +181,292 @@ body {
   border-radius: 6px;
   overflow: hidden;
   container-type: inline-size;
+}
+
+.shop-builds {
+  /* width and margin-left are set by app.js (syncShopBuildsAlignment) to
+     exactly match #shop-panels + the 6px gap + .tooltip-display combined,
+     so this stays aligned with them (excluding .category-tabs) as the
+     layout scales with the viewport.
+
+     Height is content-driven (arbitrary number of sections) rather than
+     the fixed aspect-ratio the panel used when it was just a static
+     image, so the background tiles vertically at its native width
+     instead of being cropped/blurred by `cover` as content grows. */
+  margin-bottom: 60px;
+  min-height: 220px;
+  background-color: #17141d;
+  background-image: url("../frontend_assets/shop_bg_builds.png");
+  background-size: 100% auto;
+  background-position: top center;
+  background-repeat: repeat-y;
+  border-radius: 6px;
+}
+
+.shop-builds-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  min-height: 552px;
+  box-sizing: border-box;
+}
+
+.build-add-section-btn {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: #f2ead9;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px dashed rgba(240, 236, 226, 0.45);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.build-add-section-btn:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(240, 236, 226, 0.7);
+}
+
+.build-add-section-icon {
+  width: 14px;
+  height: 14px;
+  background-image: url("../frontend_assets/icon_plus.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: invert(1);
+}
+
+.build-empty-hint {
+  color: #8b8794;
+  font-size: 13px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.build-sections-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.build-section {
+  position: relative;
+  box-sizing: border-box;
+  /* Purely a safety floor below app.js's 1-column/1-row snap sizes —
+     must not exceed them, or this would silently override the intended
+     snap size and make a "1 column" section render wider than that. */
+  min-width: 100px;
+  min-height: 100px;
+  border: 2px solid rgba(240, 236, 226, 0.35);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Content lives in its own scrolling wrapper (rather than .build-section
+   itself scrolling) so .build-section-resize-handle, an absolutely
+   positioned child of .build-section, stays pinned to the visible corner
+   instead of scrolling away with the content when a section is resized
+   smaller than what it holds. */
+.build-section-scroll {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.build-section.optional {
+  border-style: dashed;
+}
+
+.build-section.drag-over-section {
+  border-color: #00fff5;
+}
+
+.build-section-reorder-preview {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 2px dashed rgba(0, 255, 245, 0.6);
+  border-radius: 6px;
+  background: rgba(0, 255, 245, 0.05);
+}
+
+.build-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(240, 236, 226, 0.15);
+}
+
+.build-section-drag-handle {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  cursor: grab;
+  background-image: url("../frontend_assets/icon_move.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: invert(1);
+  opacity: 0.75;
+}
+
+.build-section-drag-handle:active {
+  cursor: grabbing;
+}
+
+.build-section-title {
+  flex: 1;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #f2ead9;
+  outline: none;
+  min-width: 40px;
+}
+
+.build-section-title:focus {
+  outline: 1px solid rgba(0, 255, 245, 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.build-section-optional-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border: 1px dashed rgba(240, 236, 226, 0.6);
+  border-radius: 3px;
+  color: #b7b2bf;
+  cursor: pointer;
+  user-select: none;
+}
+
+.build-section.optional .build-section-optional-badge {
+  color: #f2ead9;
+  border-color: #f2ead9;
+}
+
+.build-section-delete-btn {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  color: #b7b2bf;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.build-section-delete-btn:hover {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.15);
+}
+
+.build-section-items {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
+  padding: 12px;
+  min-height: 125px;
+}
+
+.build-slot-placeholder {
+  width: 80px;
+  height: 125px;
+  flex-shrink: 0;
+  /* card_slot.png isn't the same aspect ratio as a .mod-box (80:125), so
+     `cover` cropped its left/right edges to fill the box — `contain`
+     shows the whole image, letterboxed top/bottom instead. */
+  background-image: url("../frontend_assets/card_slot.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 4px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.build-section-resize-handle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background-image: url("../frontend_assets/icon_resize.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: invert(1);
+  opacity: 0.6;
+}
+
+.build-section-resize-handle:hover {
+  opacity: 1;
+}
+
+.build-item-card {
+  position: relative;
+}
+
+.build-item-remove-btn {
+  /* icon_close.svg already draws its own circular badge behind the X, so
+     this is just a positioning box — no separate background/border-radius,
+     or the div's circle would show as a second one behind the icon's own. */
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 5;
+  width: 20px;
+  height: 20px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.build-item-remove-btn::after {
+  content: "";
+  width: 100%;
+  height: 100%;
+  background-image: url("../frontend_assets/icon_close.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: invert(1);
+  opacity: 0.85;
+}
+
+.build-item-card:hover .build-item-remove-btn {
+  display: flex;
+}
+
+.mod-box.used {
+  opacity: 0.35;
+  filter: grayscale(0.6);
+  cursor: not-allowed;
+}
+
+.mod-box.dragging,
+.build-item-card.dragging {
+  opacity: 0.4;
 }
 
 .category-tabs {
@@ -818,6 +1104,13 @@ body {
 
 .tooltip-section-desc strong {
   color: #ffffff;
+}
+
+.tooltip-inline-icon {
+  width: 18px;
+  height: 18px;
+  vertical-align: -4px;
+  margin: 0 1px;
 }
 
 .tooltip-section-note {
