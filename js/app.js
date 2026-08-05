@@ -659,13 +659,6 @@
 
   function renderBuildSections() {
     sectionsContainerEl.innerHTML = "";
-    if (buildState.sections.length === 0) {
-      const hint = document.createElement("div");
-      hint.className = "build-empty-hint";
-      hint.textContent = "Drag items from the shop above into a section to start building.";
-      sectionsContainerEl.appendChild(hint);
-      return;
-    }
     const frag = document.createDocumentFragment();
     buildState.sections.forEach((section, index) => frag.appendChild(buildSectionEl(section, index)));
     sectionsContainerEl.appendChild(frag);
@@ -748,7 +741,9 @@
   }
 
   function addBuildSection() {
-    const section = { id: makeId("sec"), name: "New Section", optional: false, items: [] };
+    // 276x190 = widthForColumns(3) x heightForRows(1, ~37px header) — a new
+    // section starts already snapped to the slot grid (3 columns, 1 row).
+    const section = { id: makeId("sec"), name: "New Section", optional: false, items: [], width: 276, height: 190 };
     buildState.sections.push(section);
     saveBuildToStorage(buildState);
     renderBuildSections();

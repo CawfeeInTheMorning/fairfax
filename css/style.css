@@ -216,21 +216,22 @@ body {
   align-self: flex-start;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 28px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 14px;
   letter-spacing: 0.5px;
   color: #f2ead9;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px dashed rgba(240, 236, 226, 0.45);
-  border-radius: 6px;
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_text_header.png");
+  background-size: 100% 100%;
+  border: none;
   cursor: pointer;
 }
 
 .build-add-section-btn:hover {
-  background: rgba(0, 0, 0, 0.4);
-  border-color: rgba(240, 236, 226, 0.7);
+  filter: brightness(1.3);
 }
 
 .build-add-section-icon {
@@ -241,13 +242,6 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   filter: invert(1);
-}
-
-.build-empty-hint {
-  color: #8b8794;
-  font-size: 13px;
-  text-align: center;
-  padding: 20px 0;
 }
 
 .build-sections-container {
@@ -265,9 +259,22 @@ body {
      snap size and make a "1 column" section render wider than that. */
   min-width: 100px;
   min-height: 100px;
-  border: 2px solid rgba(240, 236, 226, 0.35);
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(55, 58, 76, 0.6);
+  border-radius: 4px;
+  background-color: transparent;
+  /* repeating-linear-gradient repeats procedurally relative to this box's
+     own size, not a tiled raster image, so the diagonal hatch is always
+     seamless no matter how the section is resized. */
+  background-image: repeating-linear-gradient(-45deg, rgb(55 58 76 / 50%) 0px, rgb(55 58 76 / 50%) 1px, transparent 1px, #00000000 22px);
+}
+
+.build-section::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(81, 88, 60, 0.4);
+  border-radius: 4px;
+  pointer-events: none;
 }
 
 /* Content lives in its own scrolling wrapper (rather than .build-section
@@ -325,13 +332,19 @@ body {
 
 .build-section-title {
   flex: 1;
+  /* min-width:0 overrides the flex item default of min-width:auto (which
+     otherwise refuses to shrink narrower than the text's own intrinsic
+     width, forcing the header to grow instead of truncating). */
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 1px;
   color: #f2ead9;
   outline: none;
-  min-width: 40px;
 }
 
 .build-section-title:focus {
