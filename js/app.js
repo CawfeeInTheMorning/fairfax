@@ -5,6 +5,19 @@
   const TIER_ORDER = [800, 1600, 3200, 6400];
   const BUILD_STORAGE_KEY = "deadlockShopBuild";
   const BUILD_STORAGE_VERSION = 1;
+  const SECTION_COLORS = [
+    "rgb(83 126 139)",
+    "rgb(142 162 73)",
+    "rgb(197 118 71)",
+    "rgb(162 73 73)",
+    "rgb(136 75 137)",
+    "rgb(114 129 77)",
+    "rgb(157 136 163)",
+    "rgb(32 27 43)",
+    "rgb(27 43 33)",
+    "rgb(43 27 27)",
+    "rgb(15 13 19)",
+  ];
 
   // Mirrors the .mod-box / .build-section-items sizing in style.css (80x125
   // cards, 4px gap, 12px padding on the items row, 2px section border) —
@@ -35,6 +48,9 @@
   let investmentBarsEl = null;
   let investmentBarsViewportEl = null;
   let investmentBarsContentEl = null;
+  let openSectionSettingsId = null; // id of the section whose settings dropdown is open, if any
+  let sectionActionsRowEl = null;
+  let addSectionBtnViewportEl = null;
   let dragPayload = null; // set on dragstart, read on drop (dataTransfer.getData is unreliable during dragover in some browsers)
   let lastSectionPreviewIndex = null;
   let autoScrollSpeed = 0;
@@ -118,6 +134,19 @@
     const results = document.createElement("div");
     results.className = "search-results";
 
+    // Native-1076px-wide canvas, scaled down as one rigid unit — same
+    // technique as .tier-grid — so search result cards render at the
+    // same size as the same items shown in their category panel, instead
+    // of at native .mod-box size (which is what .tier-grid's own cards
+    // are scaled DOWN from). .search-results itself stays the scrolling
+    // element (unlike .build-sections-viewport, no JS height sync is
+    // needed here — this content's height is naturally variable, and a
+    // position:relative scrolling ancestor correctly derives its
+    // scrollable overflow from an absolutely positioned + transformed
+    // descendant's rendered bounds).
+    const scaled = document.createElement("div");
+    scaled.className = "search-content-scaled";
+
     CATEGORY_ORDER.forEach((cat) => {
       const section = document.createElement("section");
       section.className = "search-section";
@@ -136,9 +165,10 @@
       });
       section.appendChild(grid);
 
-      results.appendChild(section);
+      scaled.appendChild(section);
     });
 
+    results.appendChild(scaled);
     panel.appendChild(results);
     shopEl.appendChild(panel);
   }
@@ -328,9 +358,30 @@
     body.appendChild(desc);
     card.appendChild(body);
 
+    // Separate card-like panel below the main tooltip, only shown when
+    // the hovered item has notes (see ITEM_NOTES) — same bottom
+    // background art as .tooltip-card-body, styled as its own small
+    // card rather than folded into the main description.
+    const notes = document.createElement("div");
+    notes.className = "tooltip-card-notes";
+    const notesTitle = document.createElement("div");
+    notesTitle.className = "tooltip-card-notes-title";
+    notesTitle.textContent = "Notes";
+    notes.appendChild(notesTitle);
+    const notesList = document.createElement("ul");
+    notesList.className = "tooltip-card-notes-list";
+    // Same delegation rationale as desc's click listener above —
+    // notesList's innerHTML is fully rebuilt on every hover.
+    notesList.addEventListener("click", (e) => {
+      const link = e.target.closest("[data-item-link]");
+      if (link) jumpToItem(link.dataset.itemLink);
+    });
+    notes.appendChild(notesList);
+    card.appendChild(notes);
+
     tooltipDisplayEl.appendChild(card);
 
-    tooltipCard = { root: card, top, name, costValue, body, desc };
+    tooltipCard = { root: card, top, name, costValue, body, desc, notes, notesList };
   }
 
   // Clicking an "Upgrades To/From" link: switch to that item's category if
@@ -357,6 +408,16 @@
     tooltipCard.desc.innerHTML = details
       ? buildTooltipBodyHtml(details)
       : '<div class="tooltip-placeholder">Description coming soon.</div>';
+
+    const notes = ITEM_NOTES[key];
+    if (notes && notes.length) {
+      tooltipCard.notes.style.backgroundImage = 'url("frontend_assets/tooltip_bg_' + cat + '_bottom.png")';
+      tooltipCard.notesList.innerHTML = notes.map((n) => "<li>" + renderNoteHtml(n, item.name) + "</li>").join("");
+      tooltipCard.notes.classList.add("visible");
+    } else {
+      tooltipCard.notes.classList.remove("visible");
+      tooltipCard.notesList.innerHTML = "";
+    }
 
     tooltipCard.root.classList.add("visible");
   }
@@ -385,6 +446,64 @@
     const file = STAT_ICON_FILES[code];
     if (!file) return "";
     return '<img class="' + extraClass + '" src="stat_icons/' + file + '" alt="">';
+  }
+
+  // Built once — every {name, cat, file} in SHOP_DATA, longest name
+  // first. The length-descending order matters: it's fed into a single
+  // regex alternation (see renderNoteHtml) so that at any given match
+  // position the longest possible item name wins, rather than a shorter
+  // name that happens to be a prefix/substring of a longer one (e.g.
+  // matching "Mystic Slow" whole rather than some hypothetical shorter
+  // name inside it).
+  let itemNameLookup = null;
+  function buildItemNameLookup() {
+    if (itemNameLookup) return itemNameLookup;
+    const list = [];
+    CATEGORY_ORDER.forEach((cat) => {
+      const tiers = SHOP_DATA[cat].tiers;
+      Object.keys(tiers).forEach((t) => {
+        tiers[t].forEach((item) => list.push({ name: item.name, cat, file: item.file }));
+      });
+    });
+    list.sort((a, b) => b.name.length - a.name.length);
+    itemNameLookup = list;
+    return list;
+  }
+
+  // Notes reference other items in plain prose (e.g. "...effects like
+  // Mystic Slow or Bullet Resist Shredder"). Rather than hand-authoring
+  // link markup into ITEM_NOTES, every OTHER known item name is
+  // auto-detected here (excluding the note's own item) and turned into a
+  // clickable icon+text span, same click behavior as the tooltip's
+  // Upgrades To/From links (see the notesList click delegation in
+  // buildTooltipDisplay and jumpToItem). Single combined regex pass (not
+  // one .replace() per name) so a shorter name can never accidentally
+  // match text already inside a just-inserted link for a longer one.
+  function renderNoteHtml(text, ownItemName) {
+    let html = escapeHtml(text || "").replace(/ {2,}/g, " ");
+    const lookup = buildItemNameLookup().filter((e) => e.name !== ownItemName);
+    if (!lookup.length) return html;
+    const byName = {};
+    const pattern = lookup
+      .map((e) => {
+        byName[e.name] = e;
+        return e.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      })
+      .join("|");
+    const re = new RegExp("\\b(" + pattern + ")\\b", "g");
+    return html.replace(re, (match) => {
+      const entry = byName[match];
+      if (!entry) return match;
+      return (
+        '<span class="tooltip-note-link" data-item-link="' +
+        escapeHtml(entry.name) +
+        '"><img class="tooltip-note-link-icon" src="' +
+        iconPath(entry.cat, entry.file) +
+        '" alt="">' +
+        match +
+        "</span>"
+      );
+    });
   }
 
   function buildTooltipBodyHtml(details) {
@@ -883,6 +1002,14 @@
     const left = document.createElement("div");
     left.className = "shop-builds-left";
 
+    addSectionBtnViewportEl = document.createElement("div");
+    addSectionBtnViewportEl.className = "build-add-section-viewport";
+    left.appendChild(addSectionBtnViewportEl);
+
+    sectionActionsRowEl = document.createElement("div");
+    sectionActionsRowEl.className = "build-section-actions-row";
+    addSectionBtnViewportEl.appendChild(sectionActionsRowEl);
+
     const addBtn = document.createElement("button");
     addBtn.type = "button";
     addBtn.className = "build-add-section-btn";
@@ -891,7 +1018,14 @@
     addBtn.appendChild(addBtnIcon);
     addBtn.appendChild(document.createTextNode("Add Section"));
     addBtn.addEventListener("click", addBuildSection);
-    left.appendChild(addBtn);
+    sectionActionsRowEl.appendChild(addBtn);
+
+    const clearBtn = document.createElement("button");
+    clearBtn.type = "button";
+    clearBtn.className = "build-clear-sections-btn";
+    clearBtn.appendChild(document.createTextNode("Clear"));
+    clearBtn.addEventListener("click", clearAllSections);
+    sectionActionsRowEl.appendChild(clearBtn);
 
     buildSectionsViewportEl = document.createElement("div");
     buildSectionsViewportEl.className = "build-sections-viewport";
@@ -944,6 +1078,15 @@
       if (draggingEl) draggingEl.classList.remove("dragging");
     });
 
+    // On document (not shopBuildsEl) since a click anywhere else on the
+    // page — not just elsewhere in the build panel — should close an open
+    // section settings dropdown.
+    document.addEventListener("click", (e) => {
+      if (!openSectionSettingsId) return;
+      if (e.target.closest(".build-section-settings-btn, .build-section-settings-dropdown")) return;
+      closeSectionSettingsDropdown();
+    });
+
     renderBuildSections();
     updateShopItemUsedState();
   }
@@ -988,11 +1131,12 @@
     title.dataset.action = "rename-section";
     header.appendChild(title);
 
-    const optionalBadge = document.createElement("div");
-    optionalBadge.className = "build-section-optional-badge";
-    optionalBadge.textContent = "Optional";
-    optionalBadge.dataset.action = "toggle-optional";
-    header.appendChild(optionalBadge);
+    if (section.color) header.style.backgroundColor = section.color;
+
+    const settingsBtn = document.createElement("div");
+    settingsBtn.className = "build-section-settings-btn";
+    settingsBtn.dataset.action = "toggle-section-settings";
+    header.appendChild(settingsBtn);
 
     const deleteBtn = document.createElement("div");
     deleteBtn.className = "build-section-delete-btn";
@@ -1007,6 +1151,38 @@
     scroll.appendChild(itemsEl);
 
     el.appendChild(scroll);
+
+    // A sibling of .build-section-scroll (not a child of it) so the
+    // dropdown isn't clipped/scrolled away by the scroll wrapper's own
+    // overflow:auto when a section is shorter than its content — same
+    // reasoning as .build-section-resize-handle below.
+    const settingsDropdown = document.createElement("div");
+    settingsDropdown.className = "build-section-settings-dropdown";
+    if (openSectionSettingsId === section.id) settingsDropdown.classList.add("is-open");
+
+    const optionalRow = document.createElement("label");
+    optionalRow.className = "build-section-settings-optional-row";
+    const optionalCheckbox = document.createElement("input");
+    optionalCheckbox.type = "checkbox";
+    optionalCheckbox.checked = !!section.optional;
+    optionalCheckbox.dataset.action = "toggle-optional";
+    optionalRow.appendChild(optionalCheckbox);
+    optionalRow.appendChild(document.createTextNode("Optional"));
+    settingsDropdown.appendChild(optionalRow);
+
+    const colorsRow = document.createElement("div");
+    colorsRow.className = "build-section-settings-colors";
+    SECTION_COLORS.forEach((color) => {
+      const swatch = document.createElement("div");
+      swatch.className = "build-section-color-swatch" + (section.color === color ? " is-selected" : "");
+      swatch.style.backgroundColor = color;
+      swatch.dataset.action = "set-section-color";
+      swatch.dataset.color = color;
+      colorsRow.appendChild(swatch);
+    });
+    settingsDropdown.appendChild(colorsRow);
+
+    el.appendChild(settingsDropdown);
 
     const resizeHandle = document.createElement("div");
     resizeHandle.className = "build-section-resize-handle";
@@ -1070,12 +1246,51 @@
     clearInvestmentHighlight();
   }
 
+  function clearAllSections() {
+    buildState.sections = [];
+    openSectionSettingsId = null;
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+    updateShopItemUsedState();
+    clearInvestmentHighlight();
+  }
+
   function toggleSectionOptional(id) {
     const section = findSection(id);
     if (!section) return;
     section.optional = !section.optional;
     saveBuildToStorage(buildState);
     renderBuildSections();
+  }
+
+  function setSectionColor(id, color) {
+    const section = findSection(id);
+    if (!section) return;
+    section.color = color;
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+  }
+
+  // Only one section's settings dropdown is open at a time. The open id is
+  // ambient UI state (not part of buildState/localStorage) that survives
+  // renderBuildSections() rebuilding the section DOM — buildSectionEl
+  // re-applies .is-open to whichever section matches this id, so toggling
+  // the "Optional" checkbox or picking a color (both of which trigger a
+  // full re-render) doesn't visually close the dropdown out from under
+  // the user mid-interaction.
+  function openSectionSettingsDropdown(id) {
+    openSectionSettingsId = id;
+    const dropdown = sectionsContainerEl.querySelector('.build-section[data-section-id="' + id + '"] .build-section-settings-dropdown');
+    if (dropdown) dropdown.classList.add("is-open");
+  }
+
+  function closeSectionSettingsDropdown() {
+    if (!openSectionSettingsId) return;
+    const dropdown = sectionsContainerEl.querySelector(
+      '.build-section[data-section-id="' + openSectionSettingsId + '"] .build-section-settings-dropdown'
+    );
+    if (dropdown) dropdown.classList.remove("is-open");
+    openSectionSettingsId = null;
   }
 
   // toIndex is "insert before this position in the array as it stood
@@ -1287,6 +1502,18 @@
     const headerHeight = headerEl.getBoundingClientRect().height;
 
     function onMouseMove(moveEvent) {
+      // Self-heals a resize session whose mouseup never reached this
+      // document (e.g. the button was released outside the browser
+      // window, or focus left mid-drag) — moveEvent.buttons reflects
+      // which buttons are ACTUALLY held right now, regardless of where
+      // they were released, so a leftover, never-cleaned-up listener
+      // stops itself on the very next mouse movement instead of staying
+      // stuck and resizing the section again the next time the mouse
+      // happens to move (e.g. double-clicking the section title).
+      if (moveEvent.buttons !== 1) {
+        onMouseUp();
+        return;
+      }
       const rawWidth = startRect.width + (moveEvent.clientX - startX);
       const rawHeight = startRect.height + (moveEvent.clientY - startY);
       const snappedWidth = widthForColumns(columnsForWidth(rawWidth));
@@ -1298,12 +1525,17 @@
     function onMouseUp() {
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("blur", onMouseUp);
       const finalRect = sectionEl.getBoundingClientRect();
       resizeSection(sectionEl.dataset.sectionId, Math.round(finalRect.width), Math.round(finalRect.height));
     }
 
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
+    // Covers the case where the window loses focus mid-drag (e.g.
+    // alt-tab) with no further mousemove ever reaching this document to
+    // trigger the buttons-check above.
+    window.addEventListener("blur", onMouseUp);
   }
 
   function handleSectionsClick(e) {
@@ -1317,6 +1549,22 @@
     if (optionalBtn) {
       const section = optionalBtn.closest(".build-section");
       if (section) toggleSectionOptional(section.dataset.sectionId);
+      return;
+    }
+    const settingsBtn = e.target.closest('[data-action="toggle-section-settings"]');
+    if (settingsBtn) {
+      const section = settingsBtn.closest(".build-section");
+      if (section) {
+        const id = section.dataset.sectionId;
+        if (openSectionSettingsId === id) closeSectionSettingsDropdown();
+        else openSectionSettingsDropdown(id);
+      }
+      return;
+    }
+    const colorSwatch = e.target.closest('[data-action="set-section-color"]');
+    if (colorSwatch) {
+      const section = colorSwatch.closest(".build-section");
+      if (section) setSectionColor(section.dataset.sectionId, colorSwatch.dataset.color);
       return;
     }
     const removeBtn = e.target.closest('[data-action="remove-item"]');
@@ -1558,6 +1806,7 @@
       updateBuildSectionsViewportHeight();
       updateInvestmentBarsViewportHeight();
       updateInvestmentBarsTopAlign();
+      updateAddSectionBtnViewport();
     }
     const ro = new ResizeObserver(update);
     ro.observe(shopEl);
@@ -1584,6 +1833,25 @@
     const ro = new ResizeObserver(updateBuildSectionsViewportHeight);
     ro.observe(sectionsContainerEl);
     updateBuildSectionsViewportHeight();
+  }
+
+  // Same technique again — .build-section-actions-row (Add Section +
+  // Clear, side by side) is a fixed-native-size, transform:scale'd block
+  // (relative to .shop-builds-left, the same cqw reference
+  // .build-sections-container uses) so it shrinks in lockstep with the
+  // sections below it instead of staying pinned at native size.
+  function updateAddSectionBtnViewport() {
+    if (!addSectionBtnViewportEl || !sectionActionsRowEl) return;
+    const r = sectionActionsRowEl.getBoundingClientRect();
+    addSectionBtnViewportEl.style.width = r.width + "px";
+    addSectionBtnViewportEl.style.height = r.height + "px";
+  }
+
+  function syncAddSectionBtnScale() {
+    if (!sectionActionsRowEl) return;
+    const ro = new ResizeObserver(updateAddSectionBtnViewport);
+    ro.observe(sectionActionsRowEl);
+    updateAddSectionBtnViewport();
   }
 
   // Same technique as updateBuildSectionsViewportHeight/syncBuildSectionsScale,
@@ -1636,5 +1904,6 @@
   syncShopBuildsAlignment();
   syncBuildSectionsScale();
   syncInvestmentBarsScale();
+  syncAddSectionBtnScale();
   setupDragAutoScroll();
 })();

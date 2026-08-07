@@ -185,9 +185,12 @@ body {
      rendered height by a ResizeObserver in app.js (falls back to the
      --panel-h design constant until JS measures it). Both width and
      height are derived from that single value at the image's native
-     800:1618 ratio — same trick .shop-panel uses via aspect-ratio —
-     so the box always matches the image's shape exactly and
-     background-size: cover never has a mismatched ratio to crop. */
+     800:1618 ratio — same trick .shop-panel uses via aspect-ratio — so
+     the box always matches the image's shape exactly and
+     background-size: cover never has a mismatched ratio to crop.
+     overflow-y:auto below handles a longer item tooltip + notes panel
+     that overflows this height via scrolling, rather than the old
+     overflow:hidden hard-clipping it. */
   position: relative;
   flex-shrink: 0;
   margin-left: 6px;
@@ -198,7 +201,8 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 6px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   container-type: inline-size;
 }
 
@@ -379,8 +383,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
-  height: 22px;
+  gap: 4px;
+  height: 21.85px;
   font-size: 14px;
   color: #f2ead9;
   white-space: nowrap;
@@ -392,8 +396,10 @@ body {
 }
 
 .investment-souls-star {
+  position: relative;
+  top: -2px;
   color: #ffd166;
-  font-size: 9px;
+  font-size: 15px;
 }
 
 .investment-bar-col {
@@ -422,8 +428,8 @@ body {
 }
 
 .investment-bar-icon {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
 }
 
@@ -465,10 +471,11 @@ body {
   background-color: #b766de;
 }
 
-/* Brighter overlay on top of .is-filled — the segment range a hovered
-   build item accounts for within the total. */
+/* White border around the segment range a hovered build item accounts
+   for within the total — inset box-shadow rather than an actual border
+   so it doesn't add layout width and shift adjacent segments. */
 .investment-bar-segment.is-highlighted {
-  box-shadow: inset 0 0 0 999px rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 0 0 2px #ffffff;
 }
 
 /* Tick labels live outside the pill now (see .investment-bar-labels),
@@ -502,8 +509,35 @@ body {
   opacity: 1;
 }
 
-.build-add-section-btn {
+/* Reserves layout space for .build-section-actions-row, which is
+   positioned out of flow below — width/height set from JS
+   (updateAddSectionBtnViewport) to the row's actual post-scale rendered
+   size, same relationship as .investment-bars-viewport. */
+.build-add-section-viewport {
+  position: relative;
   align-self: flex-start;
+}
+
+/* Fixed-native-size block (Add Section + Clear, side by side) scaled as
+   one rigid unit via a container-query-relative transform — same
+   technique as .build-sections-container, and deliberately reusing ITS
+   native-w (not a row-specific one) as the scale denominator, so this
+   shrinks by the exact same percentage as the sections below it (both
+   are "current .shop-builds-left width ÷ 1088"), rather than
+   independently scaling relative to the row's own much smaller native
+   size. */
+.build-section-actions-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 12px;
+  transform: scale(calc(100cqw / var(--build-sections-native-w)));
+  transform-origin: top left;
+}
+
+.build-add-section-btn,
+.build-clear-sections-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -519,10 +553,22 @@ body {
   background-size: 100% 100%;
   border: none;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.build-add-section-btn:hover {
+.build-add-section-btn:hover,
+.build-clear-sections-btn:hover {
   filter: brightness(1.3);
+}
+
+/* Matches .build-add-section-btn's own natural (native, pre-scale)
+   width — "Clear" alone is much shorter text, and background-size:
+   100% 100% on a narrower box squishes the shop_text_header.png texture
+   noticeably more than on the wider Add Section button. box-sizing
+   border-box so the fixed width includes the button's own padding. */
+.build-clear-sections-btn {
+  box-sizing: border-box;
+  min-width: 167px;
 }
 
 .build-add-section-icon {
@@ -669,22 +715,90 @@ body {
   border-radius: 2px;
 }
 
-.build-section-optional-badge {
+.build-section-settings-btn {
   flex-shrink: 0;
-  font-size: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border: 1px dashed rgba(240, 236, 226, 0.6);
-  border-radius: 3px;
-  color: #b7b2bf;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.build-section-settings-btn::after {
+  content: "";
+  width: 100%;
+  height: 100%;
+  background-image: url("../frontend_assets/icon_settings.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: invert(1);
+  opacity: 0.7;
+}
+
+.build-section-settings-btn:hover::after {
+  opacity: 1;
+}
+
+/* Sits as a sibling of .build-section-scroll (see buildSectionEl in
+   app.js) so a short section's own overflow:auto content area can't
+   clip or scroll it away — positioned relative to .build-section itself,
+   just under the header where the settings button lives. */
+.build-section-settings-dropdown {
+  display: none;
+  position: absolute;
+  top: 38px;
+  right: 8px;
+  z-index: 10;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 140px;
+  padding: 10px;
+  background-color: rgb(15 13 19);
+  border: 1px solid rgba(240, 236, 226, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.build-section-settings-dropdown.is-open {
+  display: flex;
+}
+
+.build-section-settings-optional-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: #f2ead9;
   cursor: pointer;
   user-select: none;
 }
 
-.build-section.optional .build-section-optional-badge {
-  color: #f2ead9;
-  border-color: #f2ead9;
+.build-section-settings-optional-row input[type="checkbox"] {
+  accent-color: #00fff5;
+  cursor: pointer;
+}
+
+.build-section-settings-colors {
+  display: grid;
+  grid-template-columns: repeat(5, 18px);
+  gap: 6px;
+}
+
+.build-section-color-swatch {
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.build-section-color-swatch.is-selected {
+  border: 2px solid #f2ead9;
 }
 
 .build-section-delete-btn {
@@ -771,25 +885,25 @@ body {
 }
 
 .build-item-remove-btn {
-  /* icon_close.svg already draws its own circular badge behind the X, so
-     this is just a positioning box — no separate background/border-radius,
-     or the div's circle would show as a second one behind the icon's own. */
+  /* Same black-square-badge treatment as .mod-box-add-badge. */
   position: absolute;
   top: 2px;
   right: 2px;
   z-index: 5;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: none;
   align-items: center;
   justify-content: center;
+  background-color: #000000;
+  border-radius: 3px;
   cursor: pointer;
 }
 
 .build-item-remove-btn::after {
   content: "";
-  width: 100%;
-  height: 100%;
+  width: 20px;
+  height: 20px;
   background-image: url("../frontend_assets/icon_close.svg");
   background-size: contain;
   background-position: center;
@@ -980,11 +1094,30 @@ body {
 }
 
 .search-results {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   margin: 40px 0;
+}
+
+/* Native-1076px-wide canvas scaled down as one rigid unit — same
+   technique as .tier-grid — so .mod-box cards in search results render
+   at the same size as the same items shown in their own category panel.
+   Unlike .tier-grid this has no fixed native height (search results are
+   a variable-length list, not a 2x2 grid), so .search-results (a
+   position:relative scrolling container) derives its scrollable area
+   directly from this positioned + transformed descendant's rendered
+   bounds instead of needing a JS-measured height reservation. */
+.search-content-scaled {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1076px;
   padding: 24px 24px 40px;
+  box-sizing: border-box;
+  transform: scale(calc(100cqw / 1076px));
+  transform-origin: top left;
 }
 
 .search-section {
@@ -1117,8 +1250,8 @@ body {
   top: 4px;
   right: 4px;
   z-index: 6;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   align-items: center;
   justify-content: center;
   background-color: #000000;
@@ -1128,8 +1261,8 @@ body {
 
 .mod-box-add-badge::after {
   content: "";
-  width: 10px;
-  height: 10px;
+  width: 20px;
+  height: 20px;
   background-image: url("../frontend_assets/icon_plus.svg");
   background-size: contain;
   background-position: center;
@@ -1192,7 +1325,7 @@ body {
   position: absolute;
   inset: 0;
   background-image: url("../frontend_assets/card_selected.png");
-  background-size: cover;
+  background-size: 82px 126px;
   background-position: center;
   border-radius: 4px;
   z-index: 3;
@@ -1362,7 +1495,8 @@ body {
 }
 
 .tooltip-card-name {
-  font-family: "ValvePulp", sans-serif;
+  font-family: "ValveOracle", sans-serif;
+  font-weight: 700;
   font-size: 26px;
   color: #ffffff;
   line-height: 1.15;
@@ -1408,6 +1542,90 @@ body {
 
 .tooltip-placeholder {
   opacity: 0.7;
+}
+
+/* Separate card below the main tooltip — same bottom background art as
+   .tooltip-card-body, but its own standalone rounded card (all 4
+   corners, not continuing .tooltip-card-top's shape) rather than a
+   continuation of the main card, since it's conditionally shown/hidden
+   independently of it. Flows naturally below .tooltip-card-body since
+   it's a normal-flow sibling inside the same (already scaled)
+   .tooltip-card — no separate positioning/scaling needed. */
+.tooltip-card-notes {
+  display: none;
+  width: 100%;
+  margin-top: 16px;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-color: #1c1720;
+  padding: 18px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  /* Clips .tooltip-card-notes-title's full-bleed corners (below) to this
+     card's own rounded corners, same relationship as .build-section /
+     .build-section-header. */
+  overflow: hidden;
+  color: #f0ece2;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tooltip-card-notes.visible {
+  display: block;
+}
+
+/* Same rgba(0,0,0,0.4) full-bleed header treatment as
+   .tooltip-section-header — extends past .tooltip-card-notes' own 18px
+   padding on the top/left/right (the negative margins cancel exactly
+   that padding) so the bar spans the card edge-to-edge instead of
+   sitting inset like plain text. */
+.tooltip-card-notes-title {
+  font-family: "ValveOracle", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin: -18px -18px 12px -18px;
+  padding: 6px 18px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.tooltip-card-notes-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 16px;
+}
+
+.tooltip-card-notes-list li {
+  margin-bottom: 6px;
+}
+
+.tooltip-card-notes-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* Inline clickable reference to another item, auto-detected in note text
+   (see renderNoteHtml in app.js) — same click-to-jump behavior and hover
+   affordance as .tooltip-upgrade-item-clickable, just inline within a
+   sentence instead of a standalone block. */
+.tooltip-note-link {
+  cursor: pointer;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.tooltip-note-link:hover {
+  color: #00fff5;
+  text-decoration: underline;
+}
+
+.tooltip-note-link-icon {
+  width: 18px;
+  height: 18px;
+  vertical-align: -4px;
+  margin: 0 2px 0 1px;
+  object-fit: contain;
 }
 
 /* ---------- tooltip: innate stats ---------- */
