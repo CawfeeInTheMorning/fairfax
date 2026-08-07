@@ -268,6 +268,28 @@ const STAT_ICON_FILES = {
   "weapon-damage": "weapon-damage-icon.png"
 };
 
+// Global per-category Soul investment tiers — the sum of every owned
+// item's soul cost within a category (weapon/vitality/spirit, regardless
+// of which specific items), capped at 28,800, grants a passive stat bonus
+// looked up here. weapon/vitality values are percentages; spirit is a
+// flat stat value (matches the in-game reference table's own display
+// convention). The 4,800 row is the game's "milestone" threshold. Not to
+// be confused with TIER_ORDER in app.js (item price tiers) — a different
+// concept that happens to share numbers at the low end.
+const INVESTMENT_TIERS = [
+  { souls: 800, weapon: 9, vitality: 9, spirit: 7 },
+  { souls: 1600, weapon: 12, vitality: 12, spirit: 11 },
+  { souls: 2400, weapon: 15, vitality: 15, spirit: 15 },
+  { souls: 3200, weapon: 18, vitality: 20, spirit: 19 },
+  { souls: 4800, weapon: 46, vitality: 38, spirit: 38, milestone: true },
+  { souls: 6400, weapon: 54, vitality: 42, spirit: 45 },
+  { souls: 8000, weapon: 62, vitality: 46, spirit: 52 },
+  { souls: 11200, weapon: 74, vitality: 50, spirit: 59 },
+  { souls: 16000, weapon: 86, vitality: 54, spirit: 66 },
+  { souls: 22400, weapon: 100, vitality: 60, spirit: 75 },
+  { souls: 28800, weapon: 115, vitality: 66, spirit: 100 }
+];
+
 /*
  * Rich tooltip content, filled in later from item_data.xlsx. Keyed as
  * "category:File_Name.png". Shape per entry:

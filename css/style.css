@@ -28,6 +28,25 @@
      scale" reference point for .tooltip-card below. */
   --tooltip-display-native-w: calc(var(--panel-h) * 800 / 1618);
 
+  /* .build-sections-container's "100% scale" reference width — capped at
+     roughly 2 sections of 6 items each side by side (2 * 528px, matching
+     app.js's widthForColumns(6), + the 32px gap between them), leaving
+     .shop-builds-right room alongside it instead of the sections column
+     claiming all available width. */
+  --build-sections-native-w: 1088px;
+
+  /* .investment-bars' "100% scale" reference width — its natural
+     content width (souls column + 3 pill+label columns + gaps/padding/
+     border) at 100% scale, measured in-browser. Used as
+     .shop-builds-right's flex-basis (the "start growing/shrinking from
+     here" point). */
+  --investment-bars-native-w: 325px;
+
+  /* .investment-bars-content's own native width — the souls column + 3
+     pill columns (each now pill + its tick-label column side by side)
+     + their gaps, measured in-browser. */
+  --investment-bars-content-native-w: 293px;
+
   /* Scattered black-dot grain texture, varied sizes/opacities for a
      random noise look. Shared via variable so it can be reused on
      any tab background without duplicating the gradient list. */
@@ -193,7 +212,7 @@ body {
      the fixed aspect-ratio the panel used when it was just a static
      image, so the background tiles vertically at its native width
      instead of being cropped/blurred by `cover` as content grows. */
-  margin-bottom: 60px;
+  margin-bottom: 6px;
   min-height: 220px;
   background-color: #17141d;
   background-image: url("../frontend_assets/shop_bg_builds.png");
@@ -203,13 +222,284 @@ body {
   border-radius: 6px;
 }
 
+.shop-graphs {
+  /* Same width/margin-left sync as .shop-builds (app.js
+     syncShopBuildsAlignment applies to both), and a static image, so it
+     uses the simpler aspect-ratio + cover approach .shop-builds itself
+     used before it grew dynamic content. */
+  margin-bottom: 60px;
+  aspect-ratio: 2631 / 836;
+  background-image: url("../frontend_assets/shop_bg_graphs.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 6px;
+}
+
 .shop-builds-inner {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  /* Both .shop-builds-left and .shop-builds-right now scale their own
+     content proportionally (cqw transforms keyed off each column's own
+     shrinkable flex-basis, container-type: inline-size), same as the
+     rest of the site — so this stays a single non-wrapping row and lets
+     that shrink handle narrow viewports, rather than wrapping the right
+     column onto its own line where it would just sit at native size
+     (and never actually engage its own scale transform). */
+  flex-wrap: nowrap;
+  align-items: flex-start;
   gap: 20px;
   padding: 24px;
   min-height: 552px;
   box-sizing: border-box;
+}
+
+.shop-builds-left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  /* flex-basis (not just max-width) is required here: container-type:
+     inline-size makes this element size-contained, meaning it can no
+     longer size itself from its own content (that's what breaks the
+     circular dependency for .build-sections-container's cqw units below)
+     — so without an explicit basis it collapses to 0 width instead of
+     falling back to content-based auto-sizing. flex-grow:0 caps it at
+     that basis (roughly 2 sections of 6 items each, see
+     --build-sections-native-w) even when more row space is available,
+     leaving .shop-builds-right room alongside it; flex-shrink:1 still
+     lets it shrink below that on a narrow viewport. */
+  flex: 0 1 var(--build-sections-native-w);
+  container-type: inline-size;
+}
+
+.shop-builds-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* flex-grow:1 (unlike .shop-builds-left's grow:0) — the investment-bars
+     *panel* is meant to stretch and fill whatever row space is left over
+     to the right of .shop-builds-left, all the way to .shop-builds-inner's
+     own right edge, rather than staying pinned to its content's native
+     width. container-type still makes this the cqw reference for
+     .investment-bars-content's shrink-only transform below. */
+  flex: 1 1 var(--investment-bars-native-w);
+  container-type: inline-size;
+}
+
+/* The panel background — always 100% of .shop-builds-right's width (which
+   itself now grows/shrinks with the row), independent of whatever size
+   .investment-bars-content is currently rendering at. overflow:hidden
+   clips .investment-bars-header's square top corners to the panel's own
+   border-radius, same relationship as .build-section (its rounded
+   corners come from the outer element while .build-section-header inside
+   is a plain rectangle). */
+.investment-bars {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 2px solid rgba(55, 58, 76, 0.6);
+  border-radius: 4px;
+  background-color: rgba(23, 21, 27, 0.4);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Same styling as .build-section-header, minus the drag handle/title-
+   edit/optional-badge/delete-button — this panel isn't a reorderable or
+   deletable build section, just a fixed title. */
+.investment-bars-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: rgb(15 13 19);
+  border-bottom: 1px solid rgba(240, 236, 226, 0.15);
+}
+
+.investment-bars-title {
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #f2ead9;
+}
+
+.investment-bars-body {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  background-color: transparent;
+}
+
+/* Reserves layout space for .investment-bars-content, which is positioned
+   out of flow below (same relationship as .build-sections-viewport /
+   .build-sections-container) — width/height are set from JS
+   (updateInvestmentBarsViewportHeight) to the content's actual post-scale
+   rendered size, so .investment-bars-body's justify-content:center
+   centers it correctly inside the (now wider) panel. */
+.investment-bars-viewport {
+  position: relative;
+}
+
+/* Fixed-native-width block scaled as one rigid unit via a container-query-
+   relative transform — same technique as .build-sections-container/
+   .tier-grid — so the souls column + pills shrink proportionally once the
+   panel gets squeezed narrower than their native size. min(1, ...) caps
+   the factor at 100% so they never grow past native size when the panel
+   is wider (that extra width just centers them instead, via
+   .investment-bars-body's justify-content). The `- 32px` accounts for
+   .investment-bars' own border (4px) + .investment-bars-body's horizontal
+   padding (28px), which don't shrink — cqw here is relative to
+   .shop-builds-right (the full panel column), not just this content's
+   own share of it. */
+.investment-bars-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transform: scale(min(1, calc((100cqw - 32px) / var(--investment-bars-content-native-w))));
+  transform-origin: top left;
+}
+
+/* Shared left-hand souls column — row-for-row aligned with each pill's
+   11 segments (same 22px row height, same top-to-bottom tier order),
+   so it reads as one shared axis for all 3 category pills rather than
+   repeating the souls amount inside each pill's own labels. */
+.investment-souls-col {
+  display: flex;
+  flex-direction: column;
+  padding-top: 1px;
+}
+
+.investment-souls-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  height: 22px;
+  font-size: 14px;
+  color: #f2ead9;
+  white-space: nowrap;
+}
+
+.investment-souls-row.is-milestone {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.investment-souls-star {
+  color: #ffd166;
+  font-size: 9px;
+}
+
+.investment-bar-col {
+  display: flex;
+  flex-direction: column;
+  /* flex-start (not center) — .investment-bar-pill-row is wider than
+     just the pill once the label column is added to its right, and the
+     icon below needs to stay centered under the pill specifically (via
+     .investment-bar-icon-wrap's own fixed width), not under that wider
+     combined row. */
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.investment-bar-pill-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Fixed to the pill's own width so the icon below centers under the
+   pill, not under the wider pill-row (pill + labels). */
+.investment-bar-icon-wrap {
+  display: flex;
+  justify-content: center;
+  width: 34px;
+}
+
+.investment-bar-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* overflow:hidden clips the 11 stacked, individually-square segment
+   rows to this outer wrapper's own rounded corners. */
+.investment-bar {
+  display: flex;
+  flex-direction: column;
+  width: 34px;
+  border: 1px solid rgba(55, 58, 76, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #17151b;
+}
+
+.investment-bar-row {
+  height: 22px;
+  border-top: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.investment-bar-row:first-child {
+  border-top: none;
+}
+
+.investment-bar-segment {
+  height: 100%;
+  background-color: transparent;
+}
+
+.investment-bar.is-weapon .investment-bar-segment.is-filled {
+  background-color: #e5b30b;
+}
+
+.investment-bar.is-vitality .investment-bar-segment.is-filled {
+  background-color: #a6cd3c;
+}
+
+.investment-bar.is-spirit .investment-bar-segment.is-filled {
+  background-color: #b766de;
+}
+
+/* Brighter overlay on top of .is-filled — the segment range a hovered
+   build item accounts for within the total. */
+.investment-bar-segment.is-highlighted {
+  box-shadow: inset 0 0 0 999px rgba(255, 255, 255, 0.55);
+}
+
+/* Tick labels live outside the pill now (see .investment-bar-labels),
+   row-for-row aligned with the pill's own segments — same relationship
+   as .investment-souls-col alongside the pills, just per-category
+   instead of shared. */
+.investment-bar-labels {
+  display: flex;
+  flex-direction: column;
+}
+
+.investment-bar-label-row {
+  display: flex;
+  align-items: center;
+  /* Matches .investment-bar-row's height — stays row-for-row aligned
+     with the pill's own segments (and the shared souls column) now that
+     both use the same 22px row height. */
+  height: 22px;
+  padding-left: 6px;
+}
+
+.investment-bar-tick-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f2ead9;
+  white-space: nowrap;
+  opacity: 0.25;
+}
+
+.investment-bar-label-row.is-filled .investment-bar-tick-label {
+  opacity: 1;
 }
 
 .build-add-section-btn {
@@ -220,8 +510,9 @@ body {
   gap: 8px;
   padding: 10px 28px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 14px;
-  letter-spacing: 0.5px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
   color: #f2ead9;
   background-color: transparent;
   background-image: url("../frontend_assets/shop_text_header.png");
@@ -244,11 +535,35 @@ body {
   filter: invert(1);
 }
 
+/* Height is set by app.js (syncBuildSectionsScale) to match
+   .build-sections-container's actual scaled rendered height, since that
+   content is position:absolute below (out of flow) and its arbitrary,
+   content-driven height can't be known from CSS alone the way
+   .tier-grid's fixed 960px can. */
+.build-sections-viewport {
+  position: relative;
+  width: 100%;
+}
+
+/* Same technique as .tier-grid (style.css ~line 607): a fixed native-px
+   box scaled as one rigid unit via a container-query-relative transform,
+   so the whole build area (sections, cards, gaps) shrinks proportionally
+   with the shop grid instead of just wrapping into more rows. Absolutely
+   positioned (like .tier-grid) so its native, pre-scale footprint doesn't
+   reserve that much space in the actual page layout — only the
+   post-transform visual size matters, which .build-sections-viewport's
+   JS-measured height then exposes to normal flow. */
 .build-sections-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--build-sections-native-w);
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 20px;
+  gap: 32px;
+  transform: scale(calc(100cqw / var(--build-sections-native-w)));
+  transform-origin: top left;
 }
 
 .build-section {
@@ -310,6 +625,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
+  background-color: rgb(15 13 19);
   border-bottom: 1px solid rgba(240, 236, 226, 0.15);
 }
 
@@ -372,22 +688,32 @@ body {
 }
 
 .build-section-delete-btn {
+  /* icon_close.svg already draws its own circular badge (see
+     .build-item-remove-btn for the same treatment) — this is just a
+     positioning box, no separate background/border-radius. */
   flex-shrink: 0;
   width: 18px;
   height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  line-height: 1;
-  color: #b7b2bf;
   cursor: pointer;
-  border-radius: 3px;
 }
 
-.build-section-delete-btn:hover {
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.15);
+.build-section-delete-btn::after {
+  content: "";
+  width: 100%;
+  height: 100%;
+  background-image: url("../frontend_assets/icon_close.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: invert(1);
+  opacity: 0.7;
+}
+
+.build-section-delete-btn:hover::after {
+  opacity: 1;
 }
 
 .build-section-items {
@@ -397,7 +723,12 @@ body {
   align-content: flex-start;
   gap: 4px;
   padding: 12px;
-  min-height: 125px;
+  /* box-sizing: border-box (global reset) means padding eats into
+     min-height — 125px alone left only ~101px of content room, so an
+     empty/new section collapsed shorter than a one-row-filled section,
+     which naturally grows past that insufficient floor. 149px = one
+     80x125 card + the 12px top/bottom padding, so both states match. */
+  min-height: 149px;
 }
 
 .build-slot-placeholder {
@@ -778,6 +1109,36 @@ body {
   transform: translateY(-2px);
   animation: selected-rotate 3.6s ease-in-out infinite;
   z-index: 2;
+}
+
+.mod-box-add-badge {
+  display: none;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 6;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.mod-box-add-badge::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background-image: url("../frontend_assets/icon_plus.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: invert(1);
+}
+
+.mod-box:hover:not(.used) .mod-box-add-badge {
+  display: flex;
 }
 
 .mod-box.selected {

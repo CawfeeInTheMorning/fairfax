@@ -20,6 +20,7 @@
   const tabsEl = document.getElementById("category-tabs");
   const tooltipDisplayEl = document.getElementById("tooltip-display");
   const shopBuildsEl = document.getElementById("shop-builds");
+  const shopGraphsEl = document.getElementById("shop-graphs");
   const searchTab = document.getElementById("tab-search");
 
   let searchInputEl = null;
@@ -28,7 +29,16 @@
   let activeCategory = "weapon";
   let buildState = null;
   let sectionsContainerEl = null;
+  let buildSectionsViewportEl = null;
+  let investmentBarEls = null; // { weapon: {segments: []}, vitality: {...}, spirit: {...} }
+  let shopBuildsRightEl = null;
+  let investmentBarsEl = null;
+  let investmentBarsViewportEl = null;
+  let investmentBarsContentEl = null;
   let dragPayload = null; // set on dragstart, read on drop (dataTransfer.getData is unreliable during dragover in some browsers)
+  let lastSectionPreviewIndex = null;
+  let autoScrollSpeed = 0;
+  let autoScrollRAF = null;
 
   function iconPath(category, file) {
     return SHOP_DATA[category].folder + "/" + file;
@@ -121,7 +131,7 @@
       grid.className = "search-grid";
       TIER_ORDER.forEach((tier) => {
         (SHOP_DATA[cat].tiers[tier] || []).forEach((item) => {
-          grid.appendChild(buildItemCard(cat, tier, item));
+          grid.appendChild(buildItemCard(cat, tier, item, true));
         });
       });
       section.appendChild(grid);
@@ -141,13 +151,13 @@
 
     const grid = document.createElement("div");
     grid.className = "mods-container";
-    items.forEach((item) => grid.appendChild(buildItemCard(cat, tier, item)));
+    items.forEach((item) => grid.appendChild(buildItemCard(cat, tier, item, true)));
     quad.appendChild(grid);
 
     return quad;
   }
 
-  function buildItemCard(cat, tier, item) {
+  function buildItemCard(cat, tier, item, showAddBadge) {
     const card = document.createElement("div");
     card.className = "mod-box";
     card.dataset.category = cat;
@@ -200,6 +210,17 @@
     const selectedOverlay = document.createElement("div");
     selectedOverlay.className = "card-selected-overlay";
     card.appendChild(selectedOverlay);
+
+    if (showAddBadge) {
+      const addBadge = document.createElement("div");
+      addBadge.className = "mod-box-add-badge";
+      addBadge.title = "Add Item";
+      addBadge.addEventListener("click", (e) => {
+        e.stopPropagation();
+        addItemToLastSection(cat, item.file);
+      });
+      card.appendChild(addBadge);
+    }
 
     card.addEventListener("mouseenter", () => {
       showTooltipDisplay(cat, tier, item);
@@ -611,12 +632,256 @@
     return buildState.sections.find((s) => s.id === id);
   }
 
+  // Sums every placed item's soul cost (its price tier, via
+  // resolveBuildItem) grouped by category, across ALL sections — the
+  // investment mechanic is a single global total per category, not a
+  // per-section one, matching how it actually works in-game.
+  function calculateInvestmentTotals() {
+    const totals = { weapon: 0, vitality: 0, spirit: 0 };
+    buildState.sections.forEach((section) => {
+      section.items.forEach((it) => {
+        const resolved = resolveBuildItem(it.category, it.file);
+        if (resolved) totals[it.category] += resolved.tier;
+      });
+    });
+    CATEGORY_ORDER.forEach((cat) => {
+      totals[cat] = Math.min(totals[cat], 28800);
+    });
+    return totals;
+  }
+
+  // Returns {index, tier} for the highest INVESTMENT_TIERS row whose
+  // souls threshold `total` meets or exceeds, or null if under 800 souls
+  // (no bonus reached yet). `index` (0-10) is how many bar segments
+  // should render filled.
+  function getInvestmentTier(total) {
+    let result = null;
+    let index = -1;
+    for (let i = 0; i < INVESTMENT_TIERS.length; i++) {
+      if (total >= INVESTMENT_TIERS[i].souls) {
+        result = INVESTMENT_TIERS[i];
+        index = i;
+      } else {
+        break;
+      }
+    }
+    return result ? { index, tier: result } : null;
+  }
+
+  // Built once — 3 bars (one per category) of INVESTMENT_TIERS.length
+  // segments each, plus a category icon below. Segments are created
+  // bottom-tier-first-in-DOM-last so index 0 (the 800-soul tier) ends up
+  // as the last child, i.e. visually at the bottom of the bar, matching
+  // how the fill should read (bottom-up as investment grows). Element
+  // refs are cached in investmentBarEls so re-rendering is just toggling
+  // a class, not rebuilding the DOM every time.
+  function tierBonusText(cat, tierRow) {
+    return cat === "spirit" ? "+" + tierRow.spirit : "+" + tierRow[cat] + "%";
+  }
+
+  // Builds one shared "Souls" column (11 rows, 28,800 at top down to 800
+  // at bottom, star on the 4,800 milestone row) that sits to the left of
+  // the 3 category pills — row-for-row aligned with each pill's own 11
+  // segments since both are built from the same INVESTMENT_TIERS list in
+  // the same order with the same per-row height.
+  function buildInvestmentSoulsColumn() {
+    const col = document.createElement("div");
+    col.className = "investment-souls-col";
+    for (let i = INVESTMENT_TIERS.length - 1; i >= 0; i--) {
+      const tierRow = INVESTMENT_TIERS[i];
+      const row = document.createElement("div");
+      row.className = "investment-souls-row";
+      if (tierRow.milestone) row.classList.add("is-milestone");
+      row.textContent = tierRow.souls.toLocaleString();
+      if (tierRow.milestone) {
+        const star = document.createElement("span");
+        star.className = "investment-souls-star";
+        star.textContent = "★";
+        row.appendChild(star);
+      }
+      col.appendChild(row);
+    }
+    return col;
+  }
+
+  function buildInvestmentBarsUI() {
+    // .investment-bars is the panel background — stretches to fill
+    // .shop-builds-right's full (grown) width. .investment-bars-content
+    // holds the actual souls column + pills at native size, scaled down
+    // (via CSS transform, see style.css) only once the panel gets
+    // squeezed narrower than that native size, and centered inside the
+    // panel the rest of the time.
+    const wrap = document.createElement("div");
+    wrap.className = "investment-bars";
+
+    // Header matches .build-section-header's styling (see style.css) —
+    // just a title, no drag handle/optional badge/delete button since
+    // this panel isn't a reorderable/deletable build section.
+    const header = document.createElement("div");
+    header.className = "investment-bars-header";
+    const title = document.createElement("div");
+    title.className = "investment-bars-title";
+    title.textContent = "Investments";
+    header.appendChild(title);
+    wrap.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "investment-bars-body";
+    wrap.appendChild(body);
+
+    investmentBarsViewportEl = document.createElement("div");
+    investmentBarsViewportEl.className = "investment-bars-viewport";
+    body.appendChild(investmentBarsViewportEl);
+
+    const content = document.createElement("div");
+    content.className = "investment-bars-content";
+    investmentBarsViewportEl.appendChild(content);
+    investmentBarsContentEl = content;
+
+    investmentBarEls = {};
+
+    content.appendChild(buildInvestmentSoulsColumn());
+
+    CATEGORY_ORDER.forEach((cat) => {
+      const col = document.createElement("div");
+      col.className = "investment-bar-col";
+
+      const pillRow = document.createElement("div");
+      pillRow.className = "investment-bar-pill-row";
+
+      // A pill: overflow:hidden + strongly rounded corners on this outer
+      // wrapper is what turns the 11 stacked segment rows into one
+      // continuous rounded capsule shape, rather than each row being
+      // independently rounded.
+      const pill = document.createElement("div");
+      pill.className = "investment-bar is-" + cat;
+
+      // Tick labels sit outside the pill (to its right), one per row —
+      // kept as a separate column rather than overlaid on the segments,
+      // so they're never clipped by the pill's own overflow:hidden and
+      // don't need to fight for contrast against the fill color.
+      const labelsCol = document.createElement("div");
+      labelsCol.className = "investment-bar-labels";
+
+      const segments = [];
+      const labels = [];
+      for (let i = INVESTMENT_TIERS.length - 1; i >= 0; i--) {
+        const tierRow = INVESTMENT_TIERS[i];
+
+        const row = document.createElement("div");
+        row.className = "investment-bar-row";
+        if (tierRow.milestone) row.classList.add("is-milestone");
+        const seg = document.createElement("div");
+        seg.className = "investment-bar-segment";
+        row.appendChild(seg);
+        pill.appendChild(row);
+        segments[i] = seg;
+
+        const labelRow = document.createElement("div");
+        labelRow.className = "investment-bar-label-row";
+        if (tierRow.milestone) labelRow.classList.add("is-milestone");
+        const label = document.createElement("span");
+        label.className = "investment-bar-tick-label";
+        label.textContent = tierBonusText(cat, tierRow);
+        labelRow.appendChild(label);
+        labelsCol.appendChild(labelRow);
+        labels[i] = labelRow;
+      }
+      pillRow.appendChild(pill);
+      pillRow.appendChild(labelsCol);
+      col.appendChild(pillRow);
+
+      const iconWrap = document.createElement("div");
+      iconWrap.className = "investment-bar-icon-wrap";
+      const icon = document.createElement("img");
+      icon.className = "investment-bar-icon";
+      icon.src = "stat_icons/icon-" + cat + ".webp";
+      icon.alt = "";
+      iconWrap.appendChild(icon);
+      col.appendChild(iconWrap);
+
+      content.appendChild(col);
+      investmentBarEls[cat] = { bar: pill, segments, labels };
+    });
+
+    return wrap;
+  }
+
+  function renderInvestmentBars() {
+    if (!investmentBarEls) return;
+    const totals = calculateInvestmentTotals();
+    CATEGORY_ORDER.forEach((cat) => {
+      const total = totals[cat];
+      const reached = getInvestmentTier(total);
+      const filledCount = reached ? reached.index + 1 : 0;
+      investmentBarEls[cat].segments.forEach((seg, i) => {
+        seg.classList.toggle("is-filled", i < filledCount);
+      });
+      investmentBarEls[cat].labels.forEach((labelRow, i) => {
+        labelRow.classList.toggle("is-filled", i < filledCount);
+      });
+      const bonusText = reached ? tierBonusText(cat, reached.tier) : "none yet";
+      investmentBarEls[cat].bar.title =
+        SHOP_DATA[cat].label + " Investment: " + total.toLocaleString() + " / 28,800 souls — " + bonusText;
+    });
+  }
+
+  // Hovering a placed item highlights the segment range on its category's
+  // bar that this ONE item's soul cost accounts for, attributed by
+  // placement order (first section to last, first item to last within a
+  // section) rather than by removing this item from the grand total —
+  // e.g. with Spirit Burn (6,400 souls) placed before Lightning Scroll
+  // (6,400 souls), Spirit Burn accounts for the 0-6,400 range and
+  // Lightning Scroll accounts for the 6,400-12,800 range, even though
+  // both cost the same. Tier indices (not raw soul amounts) are compared
+  // since segments represent tier thresholds, not a proportional/
+  // continuous scale.
+  function highlightInvestmentContribution(category, file) {
+    if (!investmentBarEls) return;
+    let runningTotal = 0;
+    let fromTotal = null;
+    let toTotal = null;
+    buildState.sections.some((section) => {
+      return section.items.some((it) => {
+        if (it.category !== category) return false;
+        const resolved = resolveBuildItem(it.category, it.file);
+        if (!resolved) return false;
+        const before = runningTotal;
+        runningTotal = Math.min(28800, runningTotal + resolved.tier);
+        if (it.file === file) {
+          fromTotal = before;
+          toTotal = runningTotal;
+          return true; // stop — found the hovered item
+        }
+        return false;
+      });
+    });
+    if (fromTotal === null) return;
+    const beforeTier = getInvestmentTier(fromTotal);
+    const afterTier = getInvestmentTier(toTotal);
+    const fromIndex = beforeTier ? beforeTier.index + 1 : 0;
+    const toIndex = afterTier ? afterTier.index : -1;
+    investmentBarEls[category].segments.forEach((seg, i) => {
+      seg.classList.toggle("is-highlighted", i >= fromIndex && i <= toIndex);
+    });
+  }
+
+  function clearInvestmentHighlight() {
+    if (!investmentBarEls) return;
+    CATEGORY_ORDER.forEach((cat) => {
+      investmentBarEls[cat].segments.forEach((seg) => seg.classList.remove("is-highlighted"));
+    });
+  }
+
   function buildShopBuildsUI() {
     if (!shopBuildsEl) return;
     buildState = loadBuildFromStorage();
 
     const inner = document.createElement("div");
     inner.className = "shop-builds-inner";
+
+    const left = document.createElement("div");
+    left.className = "shop-builds-left";
 
     const addBtn = document.createElement("button");
     addBtn.type = "button";
@@ -626,27 +891,53 @@
     addBtn.appendChild(addBtnIcon);
     addBtn.appendChild(document.createTextNode("Add Section"));
     addBtn.addEventListener("click", addBuildSection);
-    inner.appendChild(addBtn);
+    left.appendChild(addBtn);
+
+    buildSectionsViewportEl = document.createElement("div");
+    buildSectionsViewportEl.className = "build-sections-viewport";
+    left.appendChild(buildSectionsViewportEl);
 
     sectionsContainerEl = document.createElement("div");
     sectionsContainerEl.className = "build-sections-container";
-    inner.appendChild(sectionsContainerEl);
+    buildSectionsViewportEl.appendChild(sectionsContainerEl);
+
+    inner.appendChild(left);
+
+    // Right column — investment bars for now, room for more build-summary
+    // info alongside them later.
+    const right = document.createElement("div");
+    right.className = "shop-builds-right";
+
+    investmentBarsEl = buildInvestmentBarsUI();
+    right.appendChild(investmentBarsEl);
+
+    inner.appendChild(right);
+    shopBuildsRightEl = right;
 
     shopBuildsEl.appendChild(inner);
 
-    // One delegated listener set on the stable container, since its
-    // contents get fully rebuilt on every add/remove/rename/reorder —
-    // same rationale as the tooltip desc delegation above, just applied
-    // more aggressively since builds change far more often than a hover.
-    sectionsContainerEl.addEventListener("click", handleSectionsClick);
-    sectionsContainerEl.addEventListener("focusout", handleSectionsFocusOut);
-    sectionsContainerEl.addEventListener("keydown", handleSectionsKeyDown);
-    sectionsContainerEl.addEventListener("mousedown", handleSectionsMouseDown);
-    sectionsContainerEl.addEventListener("dragstart", handleSectionsDragStart);
-    sectionsContainerEl.addEventListener("dragover", handleSectionsDragOver);
-    sectionsContainerEl.addEventListener("dragleave", handleSectionsDragLeave);
-    sectionsContainerEl.addEventListener("drop", handleSectionsDrop);
-    sectionsContainerEl.addEventListener("dragend", () => {
+    // One delegated listener set on shopBuildsEl — the stable, outermost
+    // build panel — rather than sectionsContainerEl itself, since its
+    // contents get fully rebuilt on every add/remove/rename/reorder (same
+    // rationale as the tooltip desc delegation above, just applied more
+    // aggressively since builds change far more often than a hover).
+    // Attaching this high (instead of on sectionsContainerEl, which is
+    // position:absolute with no padding of its own) matters specifically
+    // for drag/drop: a dragover whose target lands just outside
+    // sectionsContainerEl's tight bounds (e.g. in the gap/padding around
+    // sections, easy to clip into while dragging a section toward the very
+    // front of the row) would never get preventDefault() called on it,
+    // which makes the browser reject the drop and snap the drag back to
+    // its origin instead of reordering.
+    shopBuildsEl.addEventListener("click", handleSectionsClick);
+    shopBuildsEl.addEventListener("focusout", handleSectionsFocusOut);
+    shopBuildsEl.addEventListener("keydown", handleSectionsKeyDown);
+    shopBuildsEl.addEventListener("mousedown", handleSectionsMouseDown);
+    shopBuildsEl.addEventListener("dragstart", handleSectionsDragStart);
+    shopBuildsEl.addEventListener("dragover", handleSectionsDragOver);
+    shopBuildsEl.addEventListener("dragleave", handleSectionsDragLeave);
+    shopBuildsEl.addEventListener("drop", handleSectionsDrop);
+    shopBuildsEl.addEventListener("dragend", () => {
       hideBuildSlotPlaceholder();
       hideSectionReorderPreview();
       const draggingEl = sectionsContainerEl.querySelector(".dragging");
@@ -662,6 +953,7 @@
     const frag = document.createDocumentFragment();
     buildState.sections.forEach((section, index) => frag.appendChild(buildSectionEl(section, index)));
     sectionsContainerEl.appendChild(frag);
+    renderInvestmentBars();
   }
 
   function buildSectionEl(section) {
@@ -669,7 +961,12 @@
     el.className = "build-section" + (section.optional ? " optional" : "");
     el.dataset.sectionId = section.id;
     if (section.width) el.style.width = section.width + "px";
-    if (section.height) el.style.height = section.height + "px";
+    // min-height, not height: a fixed height combined with more items
+    // than fit would clip/scroll instead of growing, which reads as
+    // items getting silently cut off. min-height keeps a resized
+    // section's chosen floor size while still letting it grow taller
+    // automatically once content needs more room than that.
+    if (section.height) el.style.minHeight = section.height + "px";
 
     const scroll = document.createElement("div");
     scroll.className = "build-section-scroll";
@@ -699,7 +996,6 @@
 
     const deleteBtn = document.createElement("div");
     deleteBtn.className = "build-section-delete-btn";
-    deleteBtn.textContent = "✕";
     deleteBtn.dataset.action = "delete-section";
     header.appendChild(deleteBtn);
 
@@ -737,6 +1033,9 @@
     removeBtn.dataset.action = "remove-item";
     wrap.appendChild(removeBtn);
 
+    wrap.addEventListener("mouseenter", () => highlightInvestmentContribution(category, file));
+    wrap.addEventListener("mouseleave", clearInvestmentHighlight);
+
     return wrap;
   }
 
@@ -768,6 +1067,7 @@
     saveBuildToStorage(buildState);
     renderBuildSections();
     updateShopItemUsedState();
+    clearInvestmentHighlight();
   }
 
   function toggleSectionOptional(id) {
@@ -812,6 +1112,17 @@
     updateShopItemUsedState();
   }
 
+  // "Add Item" badge on a shop-grid card — adds to whichever section is
+  // last in the list (i.e. the most recently added one), matching the
+  // user-facing convention "section two if there are two sections".
+  // No-op if there are no sections yet, same as any other guarded no-op
+  // in this file rather than silently creating one on the user's behalf.
+  function addItemToLastSection(category, file) {
+    if (!buildState.sections.length) return;
+    const lastSection = buildState.sections[buildState.sections.length - 1];
+    addItemToBuild(lastSection.id, category, file, null);
+  }
+
   function moveItemInBuild(fromSectionId, fromIndex, toSectionId, toIndex) {
     const fromSection = findSection(fromSectionId);
     const toSection = findSection(toSectionId);
@@ -836,6 +1147,11 @@
     saveBuildToStorage(buildState);
     renderBuildSections();
     updateShopItemUsedState();
+    // The removed card's mouseleave never fires (it's gone from the DOM
+    // before the mouse actually moves off it), which otherwise left a
+    // stale .is-highlighted overlay glowing on the bar for a tier range
+    // that no longer corresponds to any placed item.
+    clearInvestmentHighlight();
   }
 
   function updateShopItemUsedState() {
@@ -876,25 +1192,50 @@
     if (existing) existing.remove();
   }
 
-  function computeSectionInsertionIndex(clientX, clientY) {
-    const sections = [].slice.call(sectionsContainerEl.querySelectorAll(":scope > .build-section"));
-    for (let i = 0; i < sections.length; i++) {
-      const rect = sections[i].getBoundingClientRect();
-      const rowMatch = clientY >= rect.top && clientY <= rect.bottom;
-      if (rowMatch && clientX < rect.left + rect.width / 2) return i;
-      if (!rowMatch && clientY < rect.top) return i;
+  // Section-reorder insertion index is computed from a snapshot of the
+  // OTHER sections' positions taken once at dragstart (dragPayload.
+  // otherSectionRects), not by re-querying live rects on every dragover.
+  // Re-querying live would measure positions AFTER the preview placeholder
+  // has already been inserted and shifted everything past it — so the
+  // very act of showing the preview at index i could make the next
+  // dragover compute a different index than i, and the index used at
+  // drop time (also live-queried, after however many preview shuffles
+  // happened) could end up not matching what was actually shown,
+  // requiring the user to overshoot past it to get a drop to register.
+  // Coordinates are stored/compared in document space (rect + scroll
+  // offset) rather than viewport space, so this also stays correct if
+  // the page auto-scrolls mid-drag.
+  function computeSectionInsertionIndexFromSnapshot(clientX, clientY) {
+    if (!dragPayload || !dragPayload.otherSectionRects) return 0;
+    const docX = clientX + window.scrollX;
+    const docY = clientY + window.scrollY;
+    for (const entry of dragPayload.otherSectionRects) {
+      const rowMatch = docY >= entry.top && docY <= entry.bottom;
+      if (rowMatch && docX < entry.left + entry.width / 2) return entry.index;
+      if (!rowMatch && docY < entry.top) return entry.index;
     }
-    return sections.length;
+    return dragPayload.totalSectionCount;
   }
 
+  // Only actually touches the DOM when the target index changes — a real
+  // mouse drag fires dragover dozens of times a second, and re-inserting
+  // the placeholder on every single one (even while sitting over the same
+  // spot) means constant layout churn: it feels sluggish, and worse, it
+  // creates a window on every single frame where the element under the
+  // cursor is mid-shuffle, which is exactly when a drop can land on the
+  // wrong thing (or nothing at all) and get silently rejected.
   function showSectionReorderPreview(atIndex, width, height) {
-    hideSectionReorderPreview();
-    const preview = document.createElement("div");
-    preview.className = "build-section-reorder-preview";
-    preview.dataset.reorderPreview = "1";
+    if (atIndex === lastSectionPreviewIndex) return;
+    lastSectionPreviewIndex = atIndex;
+    const sections = [].slice.call(sectionsContainerEl.querySelectorAll(":scope > .build-section"));
+    let preview = sectionsContainerEl.querySelector(".build-section-reorder-preview");
+    if (!preview) {
+      preview = document.createElement("div");
+      preview.className = "build-section-reorder-preview";
+      preview.dataset.reorderPreview = "1";
+    }
     preview.style.width = width + "px";
     preview.style.height = height + "px";
-    const sections = [].slice.call(sectionsContainerEl.querySelectorAll(":scope > .build-section"));
     if (atIndex >= sections.length) {
       sectionsContainerEl.appendChild(preview);
     } else {
@@ -903,6 +1244,7 @@
   }
 
   function hideSectionReorderPreview() {
+    lastSectionPreviewIndex = null;
     const existing = sectionsContainerEl && sectionsContainerEl.querySelector(".build-section-reorder-preview");
     if (existing) existing.remove();
   }
@@ -950,7 +1292,7 @@
       const snappedWidth = widthForColumns(columnsForWidth(rawWidth));
       const snappedHeight = heightForRows(rowsForHeight(rawHeight, headerHeight), headerHeight);
       sectionEl.style.width = snappedWidth + "px";
-      sectionEl.style.height = snappedHeight + "px";
+      sectionEl.style.minHeight = snappedHeight + "px";
     }
 
     function onMouseUp() {
@@ -982,7 +1324,7 @@
       const itemCard = removeBtn.closest(".build-item-card");
       const section = removeBtn.closest(".build-section");
       if (itemCard && section) {
-        const items = [].slice.call(section.querySelectorAll(":scope > .build-section-items > .build-item-card"));
+        const items = [].slice.call(section.querySelectorAll(".build-section-items > .build-item-card"));
         removeItemFromBuild(section.dataset.sectionId, items.indexOf(itemCard));
       }
     }
@@ -1012,14 +1354,33 @@
     const handle = e.target.closest('[data-drag-handle="1"]');
     if (handle) {
       const section = handle.closest(".build-section");
-      const index = [].indexOf.call(sectionsContainerEl.querySelectorAll(".build-section"), section);
+      const allSections = [].slice.call(sectionsContainerEl.querySelectorAll(":scope > .build-section"));
+      const index = allSections.indexOf(section);
       const rect = section.getBoundingClientRect();
+      // Snapshot every OTHER section's position now, before the reorder
+      // preview placeholder can ever be inserted and shift them — see
+      // computeSectionInsertionIndexFromSnapshot for why this has to be
+      // captured once up front rather than re-measured live.
+      const otherSectionRects = [];
+      allSections.forEach((el, i) => {
+        if (i === index) return;
+        const r = el.getBoundingClientRect();
+        otherSectionRects.push({
+          index: i,
+          top: r.top + window.scrollY,
+          bottom: r.bottom + window.scrollY,
+          left: r.left + window.scrollX,
+          width: r.width,
+        });
+      });
       dragPayload = {
         source: "section",
         sectionId: section.dataset.sectionId,
         index,
         width: rect.width,
         height: rect.height,
+        otherSectionRects,
+        totalSectionCount: allSections.length,
       };
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", section.dataset.sectionId);
@@ -1028,7 +1389,7 @@
     const itemCard = e.target.closest(".build-item-card");
     if (itemCard) {
       const section = itemCard.closest(".build-section");
-      const items = [].slice.call(section.querySelectorAll(":scope > .build-section-items > .build-item-card"));
+      const items = [].slice.call(section.querySelectorAll(".build-section-items > .build-item-card"));
       dragPayload = {
         source: "build",
         sectionId: section.dataset.sectionId,
@@ -1045,9 +1406,16 @@
   function handleSectionsDragOver(e) {
     if (!dragPayload) return;
     if (dragPayload.source === "section") {
-      if (!sectionsContainerEl.contains(e.target)) return;
+      // Checked against shopBuildsEl (the whole panel), not
+      // sectionsContainerEl — that box is tightly fitted around the
+      // sections themselves with no padding of its own, so a cursor
+      // drifting into the gap/padding around them (easy to do when
+      // dragging toward the very front of the row) would otherwise never
+      // get preventDefault() called, and the browser would reject the
+      // drop and snap the drag back instead of reordering.
+      if (!shopBuildsEl.contains(e.target)) return;
       e.preventDefault();
-      const index = computeSectionInsertionIndex(e.clientX, e.clientY);
+      const index = computeSectionInsertionIndexFromSnapshot(e.clientX, e.clientY);
       showSectionReorderPreview(index, dragPayload.width, dragPayload.height);
       return;
     }
@@ -1061,7 +1429,7 @@
   function handleSectionsDragLeave(e) {
     const itemsEl = e.target.closest(".build-section-items");
     if (itemsEl && !itemsEl.contains(e.relatedTarget)) hideBuildSlotPlaceholder();
-    if (dragPayload && dragPayload.source === "section" && !sectionsContainerEl.contains(e.relatedTarget)) {
+    if (dragPayload && dragPayload.source === "section" && !shopBuildsEl.contains(e.relatedTarget)) {
       hideSectionReorderPreview();
     }
   }
@@ -1070,7 +1438,7 @@
     if (!dragPayload) return;
     if (dragPayload.source === "section") {
       e.preventDefault();
-      const toIndex = computeSectionInsertionIndex(e.clientX, e.clientY);
+      const toIndex = computeSectionInsertionIndexFromSnapshot(e.clientX, e.clientY);
       hideSectionReorderPreview();
       reorderSections(dragPayload.index, toIndex);
       dragPayload = null;
@@ -1095,6 +1463,64 @@
     dragPayload = null;
   }
 
+  // Auto-scrolls the page while dragging an item/section near the top or
+  // bottom edge of the viewport, so a section below the fold (or the shop
+  // grid above it) can be reached without letting go mid-drag. Listens on
+  // document (not sectionsContainerEl/shopEl individually) since dragover
+  // bubbles from wherever the cursor currently is, and this needs to keep
+  // working across the whole page regardless of which element that is.
+  const AUTO_SCROLL_EDGE = 90; // px from the viewport edge that starts scrolling
+  const AUTO_SCROLL_MAX_SPEED = 22; // px per frame right at the very edge
+
+  function handleGlobalDragOver(e) {
+    if (!dragPayload) return;
+    const y = e.clientY;
+    const vh = window.innerHeight;
+    let speed = 0;
+    if (y < AUTO_SCROLL_EDGE) {
+      speed = -AUTO_SCROLL_MAX_SPEED * (1 - y / AUTO_SCROLL_EDGE);
+    } else if (y > vh - AUTO_SCROLL_EDGE) {
+      speed = AUTO_SCROLL_MAX_SPEED * (1 - (vh - y) / AUTO_SCROLL_EDGE);
+    }
+    autoScrollSpeed = speed;
+    if (speed !== 0 && autoScrollRAF === null) {
+      autoScrollRAF = requestAnimationFrame(autoScrollStep);
+    }
+  }
+
+  function autoScrollStep() {
+    if (autoScrollSpeed !== 0 && dragPayload) {
+      window.scrollBy(0, autoScrollSpeed);
+      autoScrollRAF = requestAnimationFrame(autoScrollStep);
+    } else {
+      autoScrollRAF = null;
+    }
+  }
+
+  function stopAutoScroll() {
+    autoScrollSpeed = 0;
+    if (autoScrollRAF !== null) {
+      cancelAnimationFrame(autoScrollRAF);
+      autoScrollRAF = null;
+    }
+  }
+
+  // Browsers suppress normal wheel-scrolling while a native drag session is
+  // active, so this takes over scrolling manually whenever one of our own
+  // drags (item or section) is in progress.
+  function handleGlobalWheel(e) {
+    if (!dragPayload) return;
+    e.preventDefault();
+    window.scrollBy(0, e.deltaY);
+  }
+
+  function setupDragAutoScroll() {
+    document.addEventListener("dragover", handleGlobalDragOver);
+    document.addEventListener("drop", stopAutoScroll);
+    document.addEventListener("dragend", stopAutoScroll);
+    document.addEventListener("wheel", handleGlobalWheel, { passive: false });
+  }
+
   function syncTooltipDisplayHeight() {
     const ro = new ResizeObserver((entries) => {
       const h = entries[0].contentRect.height;
@@ -1117,15 +1543,88 @@
       const tooltipRect = tooltipDisplayEl.getBoundingClientRect();
       const width = tooltipRect.right - panelsRect.left;
       if (width > 0) {
+        const marginLeft = panelsRect.left + window.scrollX + "px";
         shopBuildsEl.style.width = width + "px";
-        shopBuildsEl.style.marginLeft = panelsRect.left + window.scrollX + "px";
+        shopBuildsEl.style.marginLeft = marginLeft;
+        if (shopGraphsEl) {
+          shopGraphsEl.style.width = width + "px";
+          shopGraphsEl.style.marginLeft = marginLeft;
+        }
       }
+      // .shop-builds-inner's width (and therefore .build-sections-container's
+      // and .investment-bars-content's scale factors, both keyed off that
+      // same cqw) changes right along with this, so both viewport heights
+      // need recomputing too.
+      updateBuildSectionsViewportHeight();
+      updateInvestmentBarsViewportHeight();
+      updateInvestmentBarsTopAlign();
     }
     const ro = new ResizeObserver(update);
     ro.observe(shopEl);
     ro.observe(tooltipDisplayEl);
     window.addEventListener("resize", update);
     update();
+  }
+
+  // .build-sections-container is a fixed-native-width, transform:scale'd
+  // block (same technique as .tier-grid) so build content shrinks
+  // proportionally with the shop grid — but unlike .tier-grid, its height
+  // isn't a fixed design constant (arbitrary number/size of sections), so
+  // .build-sections-viewport's height has to be measured from the actual
+  // rendered (post-transform) box and applied explicitly, the same way
+  // syncTooltipDisplayHeight measures #shop-panels.
+  function updateBuildSectionsViewportHeight() {
+    if (!buildSectionsViewportEl || !sectionsContainerEl) return;
+    const h = sectionsContainerEl.getBoundingClientRect().height;
+    buildSectionsViewportEl.style.height = h + "px";
+  }
+
+  function syncBuildSectionsScale() {
+    if (!sectionsContainerEl) return;
+    const ro = new ResizeObserver(updateBuildSectionsViewportHeight);
+    ro.observe(sectionsContainerEl);
+    updateBuildSectionsViewportHeight();
+  }
+
+  // Same technique as updateBuildSectionsViewportHeight/syncBuildSectionsScale,
+  // applied to .investment-bars-content (also a fixed-native-width,
+  // transform:scale'd block — see the CSS comment on it — but unlike the
+  // build sections, its native size is a fixed design constant rather
+  // than content-driven, so this could in principle use a CSS
+  // aspect-ratio instead; kept as a ResizeObserver for consistency with
+  // the rest of the site's scaling widgets and in case future content
+  // varies its size). Sets both width and height (not just height, unlike
+  // the build-sections case) since .investment-bars-content can also
+  // shrink narrower than its native width now that .investment-bars — the
+  // panel around it — stretches wider than that native width; the
+  // reserved viewport box needs to match its actual rendered footprint so
+  // .investment-bars' justify-content:center centers it correctly.
+  function updateInvestmentBarsViewportHeight() {
+    if (!investmentBarsViewportEl || !investmentBarsContentEl) return;
+    const r = investmentBarsContentEl.getBoundingClientRect();
+    investmentBarsViewportEl.style.width = r.width + "px";
+    investmentBarsViewportEl.style.height = r.height + "px";
+  }
+
+  function syncInvestmentBarsScale() {
+    if (!investmentBarsContentEl) return;
+    const ro = new ResizeObserver(updateInvestmentBarsViewportHeight);
+    ro.observe(investmentBarsContentEl);
+    updateInvestmentBarsViewportHeight();
+  }
+
+  // Shifts .shop-builds-right down (via margin-top) so .investment-bars'
+  // own top lines up with .build-sections-container's top — i.e. where
+  // sections actually start, below the Add Section button — rather than
+  // with .shop-builds-left's own top (the button's top). Resets
+  // margin-top to 0 before each measurement so repeated calls (on
+  // resize) don't compound the offset.
+  function updateInvestmentBarsTopAlign() {
+    if (!shopBuildsRightEl || !investmentBarsEl || !sectionsContainerEl) return;
+    shopBuildsRightEl.style.marginTop = "0px";
+    const targetTop = sectionsContainerEl.getBoundingClientRect().top;
+    const currentTop = investmentBarsEl.getBoundingClientRect().top;
+    shopBuildsRightEl.style.marginTop = targetTop - currentTop + "px";
   }
 
   buildTooltipDisplay();
@@ -1135,4 +1634,7 @@
   buildShopBuildsUI();
   syncTooltipDisplayHeight();
   syncShopBuildsAlignment();
+  syncBuildSectionsScale();
+  syncInvestmentBarsScale();
+  setupDragAutoScroll();
 })();
