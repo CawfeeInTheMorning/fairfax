@@ -28,6 +28,14 @@
      scale" reference point for .tooltip-card below. */
   --tooltip-display-native-w: calc(var(--panel-h) * 800 / 1618);
 
+  /* Free knobs for manually tweaking .tooltip-card.visible's placement —
+     no-op defaults (auto height, no vertical shift). Edit these directly
+     to experiment; height is in the card's native (pre-scale) pixels,
+     same space as its width/padding, and y-offset is applied AFTER the
+     existing scale so it's also in native pixels, not rendered ones. */
+  --tooltip-card-height: auto;
+  --tooltip-card-y-offset: 0px;
+
   /* .build-sections-container's "100% scale" reference width — capped at
      roughly 2 sections of 6 items each side by side (2 * 528px, matching
      app.js's widthForColumns(6), + the 32px gap between them), leaving
@@ -303,7 +311,7 @@ body {
   width: 100%;
   border: 2px solid rgba(55, 58, 76, 0.6);
   border-radius: 4px;
-  background-color: rgba(23, 21, 27, 0.4);
+  background-color: rgba(23, 21, 27, 0.2);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -332,7 +340,7 @@ body {
   justify-content: center;
   align-items: flex-start;
   width: 100%;
-  padding: 12px 14px;
+  padding: 12px 14px 13px;
   box-sizing: border-box;
   background-color: transparent;
 }
@@ -384,7 +392,7 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  height: 21.85px;
+  height: 28px;
   font-size: 14px;
   color: #f2ead9;
   white-space: nowrap;
@@ -446,7 +454,7 @@ body {
 }
 
 .investment-bar-row {
-  height: 22px;
+  height: 28px;
   border-top: 1px solid rgba(0, 0, 0, 0.4);
 }
 
@@ -492,8 +500,8 @@ body {
   align-items: center;
   /* Matches .investment-bar-row's height — stays row-for-row aligned
      with the pill's own segments (and the shared souls column) now that
-     both use the same 22px row height. */
-  height: 22px;
+     both use the same 28px row height. */
+  height: 28px;
   padding-left: 6px;
 }
 
@@ -515,6 +523,7 @@ body {
    size, same relationship as .investment-bars-viewport. */
 .build-add-section-viewport {
   position: relative;
+  z-index: 20;
   align-self: flex-start;
 }
 
@@ -531,7 +540,13 @@ body {
   top: 0;
   left: 0;
   display: flex;
+  align-items: center;
   gap: 12px;
+  /* Add Section + Clear stay their own natural size; the hero picker +
+     title input (appended after them, see buildShopBuildsUI) sit inline
+     to their right within this same row, with the title input growing
+     to fill whatever's left of this native width. */
+  width: var(--build-sections-native-w);
   transform: scale(calc(100cqw / var(--build-sections-native-w)));
   transform-origin: top left;
 }
@@ -549,26 +564,35 @@ body {
   letter-spacing: 1px;
   color: #f2ead9;
   background-color: transparent;
-  background-image: url("../frontend_assets/shop_text_header.png");
-  background-size: 100% 100%;
   border: none;
   cursor: pointer;
   white-space: nowrap;
 }
 
+/* Separate, purpose-sized textures (rather than one shared image
+   stretched to fit both) — "Add Section" is noticeably longer text than
+   "Clear", and a single image at 100% 100% squished one of them. Each
+   button's width is set to that image's own native aspect ratio (280x81)
+   at this button's ~40px rendered height (280 * 40/81), so the texture
+   fills the box exactly with no horizontal stretch/squish either way. */
+.build-add-section-btn {
+  background-image: url("../frontend_assets/shop_header_large.png");
+  background-size: 100% 100%;
+  width: 138px;
+}
+
+/* Same idea, shop_header_medium.png's own ratio (219x81) at ~40px tall
+   (219 * 40/81). */
+.build-clear-sections-btn {
+  background-image: url("../frontend_assets/shop_header_medium.png");
+  background-size: auto 100%;
+  background-position: center;
+  width: 108px;
+}
+
 .build-add-section-btn:hover,
 .build-clear-sections-btn:hover {
   filter: brightness(1.3);
-}
-
-/* Matches .build-add-section-btn's own natural (native, pre-scale)
-   width — "Clear" alone is much shorter text, and background-size:
-   100% 100% on a narrower box squishes the shop_text_header.png texture
-   noticeably more than on the wider Add Section button. box-sizing
-   border-box so the fixed width includes the button's own padding. */
-.build-clear-sections-btn {
-  box-sizing: border-box;
-  min-width: 167px;
 }
 
 .build-add-section-icon {
@@ -579,6 +603,135 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   filter: invert(1);
+}
+
+.build-hero-picker-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.build-hero-picker-btn {
+  position: relative;
+  width: 41px;
+  height: 41px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: rgb(15 13 19);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.build-hero-picker-btn:hover {
+  filter: brightness(1.3);
+}
+
+/* Generic placeholder shown until a hero is actually picked — hidden
+   (see .has-hero below) once .build-hero-picker-icon has a real
+   portrait to show instead. */
+.build-hero-picker-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 20px;
+  height: 20px;
+  background-image: url("../frontend_assets/icon_person.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: invert(1);
+  opacity: 0.75;
+}
+
+.build-hero-picker-btn.has-hero::after {
+  display: none;
+}
+
+.build-hero-picker-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.build-hero-picker-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 10;
+  grid-template-columns: repeat(6, 40px);
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 10px;
+  background-color: rgb(15 13 19);
+  border: 1px solid rgba(240, 236, 226, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.build-hero-picker-dropdown.is-open {
+  display: grid;
+  /* Above the build sections/items below it (those top out around
+     z-index 6 for a selected .mod-box) — this dropdown sits below the
+     title row but visually needs to float over everything under it. */
+  z-index: 20;
+}
+
+.build-hero-option {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+}
+
+.build-hero-option:hover {
+  border-color: #00fff5;
+}
+
+.build-hero-option img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.build-title-input {
+  flex: 0 0 auto;
+  height: 41px;
+  /* shop_header_extra_large.png's own ratio (600x81) at this input's
+     41px height (600 * 41/81) — same reasoning as the Add Section/Clear
+     button widths above. */
+  width: 304px;
+  padding: 0px 26px;
+  box-sizing: border-box;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  color: #f2ead9;
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_header_extra_large.png");
+  background-size: auto 100%;
+  background-position: center;
+  border: none;
+}
+
+.build-title-input::placeholder {
+  color: #f2ead9;
+  opacity: 0.4;
+}
+
+.build-title-input:focus {
+  filter: brightness(1.15);
+  outline: 1px solid rgba(0, 255, 245, 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* Height is set by app.js (syncBuildSectionsScale) to match
@@ -652,6 +805,7 @@ body {
 
 .build-section.optional {
   border-style: dashed;
+  border-color: rgb(5 255 255 / 77%);
 }
 
 .build-section.drag-over-section {
@@ -778,6 +932,8 @@ body {
 }
 
 .build-section-settings-optional-row input[type="checkbox"] {
+  width: 17.62px;
+  height: 17.62px;
   accent-color: #00fff5;
   cursor: pointer;
 }
@@ -792,7 +948,7 @@ body {
   width: 18px;
   height: 18px;
   box-sizing: border-box;
-  border: 1px solid rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 3px;
   cursor: pointer;
 }
@@ -1077,11 +1233,17 @@ body {
   flex-shrink: 0;
 }
 
-#item-search-input {
+.search-input-inner {
+  position: relative;
   width: 400px;
   max-width: calc(100% - 48px);
+}
+
+#item-search-input {
+  width: 100%;
+  box-sizing: border-box;
   font-size: 15px;
-  padding: 10px 16px;
+  padding: 10px 36px 10px 16px;
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.3);
   background: rgba(255, 255, 255, 0.92);
@@ -1091,6 +1253,40 @@ body {
 
 #item-search-input:focus {
   outline: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+/* Only shown once there's actually a query to clear. */
+.search-clear-btn {
+  display: none;
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.search-clear-btn::after {
+  content: "";
+  width: 100%;
+  height: 100%;
+  display: block;
+  background-image: url("../frontend_assets/icon_close.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+}
+
+.search-clear-btn:hover::after {
+  opacity: 1;
+}
+
+#item-search-input:not(:placeholder-shown) ~ .search-clear-btn {
+  display: flex;
 }
 
 .search-results {
@@ -1308,6 +1504,10 @@ body {
   display: none;
 }
 
+.search-section-title.search-hidden {
+  display: none;
+}
+
 .shop-panel.dimming .mod-box:not(.is-hovered):not(.selected) {
   opacity: 0.5;
 }
@@ -1468,7 +1668,11 @@ body {
   top: 0;
   left: 0;
   width: var(--tooltip-display-native-w);
-  padding: 42px 36px 0 44px;
+  /* Bottom padding gives the scroll range 40px of extra room, roughly
+     matching .tooltip-display's own 40px clip-path crop — otherwise the
+     very last bit of a long tooltip/notes list would land exactly in
+     that cropped band and never be reachable even at max scroll. */
+  padding: 42px 36px 40px 44px;
   box-sizing: border-box;
   transform: scale(calc(100cqw / var(--tooltip-display-native-w)));
   transform-origin: top left;
@@ -1477,6 +1681,12 @@ body {
 
 .tooltip-card.visible {
   display: block;
+  height: var(--tooltip-card-height);
+  /* Combined with (not layered on top of) .tooltip-card's own scale —
+     a transform declared here replaces the base rule's entirely, so the
+     scale has to be repeated alongside the y-offset or it'd be lost
+     while the card is visible. */
+  transform: scale(calc(100cqw / var(--tooltip-display-native-w))) translateY(var(--tooltip-card-y-offset));
 }
 
 .tooltip-card-top {

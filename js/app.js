@@ -19,6 +19,67 @@
     "rgb(15 13 19)",
   ];
 
+  // Portrait picker options for the build title row — hero_icons/ has no
+  // index of its own (a static site can't list a directory at runtime),
+  // so this mirrors its actual file list by hand. Display names are
+  // derived from the filename slug with a couple of manual overrides
+  // (McGinnis' capitalization, Mo & Krill's "&", the two Silver forms)
+  // that a generic title-case pass would get wrong.
+  const HERO_SLUGS = [
+    "abrams",
+    "apollo",
+    "bebop",
+    "billy",
+    "calico",
+    "celeste",
+    "doorman",
+    "drifter",
+    "dynamo",
+    "graves",
+    "grey_talon",
+    "haze",
+    "holliday",
+    "infernus",
+    "ivy",
+    "kelvin",
+    "lady_geist",
+    "lash",
+    "mcginnis",
+    "mina",
+    "mirage",
+    "mo_and_krill",
+    "paige",
+    "paradox",
+    "pocket",
+    "rem",
+    "seven",
+    "shiv",
+    "silver_human",
+    "silver_wolf",
+    "sinclair",
+    "venator",
+    "victor",
+    "vindicta",
+    "viscous",
+    "vyper",
+    "warden",
+    "wraith",
+    "yamato",
+  ];
+  const HERO_NAME_OVERRIDES = {
+    grey_talon: "Grey Talon",
+    lady_geist: "Lady Geist",
+    mcginnis: "McGinnis",
+    mo_and_krill: "Mo & Krill",
+    silver_human: "Silver (Human)",
+    silver_wolf: "Silver (Wolf)",
+  };
+  const HERO_LIST = HERO_SLUGS.map((slug) => ({
+    slug,
+    file: slug + "_icon.png",
+    name: HERO_NAME_OVERRIDES[slug] || slug.charAt(0).toUpperCase() + slug.slice(1),
+  }));
+
   // Mirrors the .mod-box / .build-section-items sizing in style.css (80x125
   // cards, 4px gap, 12px padding on the items row, 2px section border) —
   // used to snap section resizing to whole numbers of item columns/rows
@@ -51,6 +112,10 @@
   let openSectionSettingsId = null; // id of the section whose settings dropdown is open, if any
   let sectionActionsRowEl = null;
   let addSectionBtnViewportEl = null;
+  let buildHeroPickerBtnEl = null;
+  let buildHeroPickerIconEl = null;
+  let buildHeroDropdownEl = null;
+  let heroPickerOpen = false;
   let dragPayload = null; // set on dragstart, read on drop (dataTransfer.getData is unreliable during dragover in some browsers)
   let lastSectionPreviewIndex = null;
   let autoScrollSpeed = 0;
@@ -122,14 +187,32 @@
 
     const inputWrap = document.createElement("div");
     inputWrap.className = "search-input-wrap";
+
+    const inputInner = document.createElement("div");
+    inputInner.className = "search-input-inner";
+
     const input = document.createElement("input");
     input.type = "text";
     input.id = "item-search-input";
     input.placeholder = "Search items...";
     input.addEventListener("input", (e) => applySearchFilter(e.target.value));
-    inputWrap.appendChild(input);
-    panel.appendChild(inputWrap);
+    inputInner.appendChild(input);
     searchInputEl = input;
+
+    // CSS shows/hides this via #item-search-input:not(:placeholder-shown)
+    // — no JS state needed to track whether there's anything to clear.
+    const clearBtn = document.createElement("div");
+    clearBtn.className = "search-clear-btn";
+    clearBtn.title = "Clear search";
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      applySearchFilter("");
+      input.focus();
+    });
+    inputInner.appendChild(clearBtn);
+
+    inputWrap.appendChild(inputInner);
+    panel.appendChild(inputWrap);
 
     const results = document.createElement("div");
     results.className = "search-results";
@@ -412,7 +495,7 @@
     const notes = ITEM_NOTES[key];
     if (notes && notes.length) {
       tooltipCard.notes.style.backgroundImage = 'url("frontend_assets/tooltip_bg_' + cat + '_bottom.png")';
-      tooltipCard.notesList.innerHTML = notes.map((n) => "<li>" + renderNoteHtml(n, item.name) + "</li>").join("");
+      tooltipCard.notesList.innerHTML = notes.map((n) => "<li>" + renderNoteHtml(n, item.name, key) + "</li>").join("");
       tooltipCard.notes.classList.add("visible");
     } else {
       tooltipCard.notes.classList.remove("visible");
@@ -470,18 +553,28 @@
     return list;
   }
 
+  // Per-item list of names that should NOT be auto-linked even though
+  // they match a real item name — e.g. Spirit Shredder Bullets' note uses
+  // "Spirit Lifesteal" as the generic mechanic, not a reference to the
+  // item of the same name. Keyed the same as ITEM_NOTES.
+  const NOTE_LINK_EXCLUSIONS = {
+    "weapon:Spirit_Shredder_Bullets.png": ["Spirit Lifesteal"],
+  };
+
   // Notes reference other items in plain prose (e.g. "...effects like
   // Mystic Slow or Bullet Resist Shredder"). Rather than hand-authoring
   // link markup into ITEM_NOTES, every OTHER known item name is
-  // auto-detected here (excluding the note's own item) and turned into a
-  // clickable icon+text span, same click behavior as the tooltip's
-  // Upgrades To/From links (see the notesList click delegation in
-  // buildTooltipDisplay and jumpToItem). Single combined regex pass (not
-  // one .replace() per name) so a shorter name can never accidentally
-  // match text already inside a just-inserted link for a longer one.
-  function renderNoteHtml(text, ownItemName) {
+  // auto-detected here (excluding the note's own item and any
+  // NOTE_LINK_EXCLUSIONS for it) and turned into a clickable icon+text
+  // span, same click behavior as the tooltip's Upgrades To/From links
+  // (see the notesList click delegation in buildTooltipDisplay and
+  // jumpToItem). Single combined regex pass (not one .replace() per
+  // name) so a shorter name can never accidentally match text already
+  // inside a just-inserted link for a longer one.
+  function renderNoteHtml(text, ownItemName, key) {
     let html = escapeHtml(text || "").replace(/ {2,}/g, " ");
-    const lookup = buildItemNameLookup().filter((e) => e.name !== ownItemName);
+    const excluded = (key && NOTE_LINK_EXCLUSIONS[key]) || [];
+    const lookup = buildItemNameLookup().filter((e) => e.name !== ownItemName && excluded.indexOf(e.name) === -1);
     if (!lookup.length) return html;
     const byName = {};
     const pattern = lookup
@@ -691,6 +784,13 @@
       const match = !q || card.dataset.name.toLowerCase().includes(q);
       card.classList.toggle("search-hidden", !match);
     });
+    document.querySelectorAll(".search-section").forEach((section) => {
+      const hasVisibleItem = Array.from(section.querySelectorAll(".mod-box")).some(
+        (card) => !card.classList.contains("search-hidden")
+      );
+      const title = section.querySelector(".search-section-title");
+      if (title) title.classList.toggle("search-hidden", !hasVisibleItem);
+    });
   }
 
   // ---------- Build creator ----------
@@ -700,7 +800,7 @@
   }
 
   function loadBuildFromStorage() {
-    const fallback = { version: BUILD_STORAGE_VERSION, sections: [] };
+    const fallback = { version: BUILD_STORAGE_VERSION, title: "", hero: null, sections: [] };
     let raw;
     try {
       raw = localStorage.getItem(BUILD_STORAGE_KEY);
@@ -715,7 +815,12 @@
       return fallback;
     }
     if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.sections)) return fallback;
-    return { version: BUILD_STORAGE_VERSION, sections: parsed.sections };
+    return {
+      version: BUILD_STORAGE_VERSION,
+      title: typeof parsed.title === "string" ? parsed.title : "",
+      hero: typeof parsed.hero === "string" ? parsed.hero : null,
+      sections: parsed.sections,
+    };
   }
 
   function saveBuildToStorage(state) {
@@ -752,12 +857,16 @@
   }
 
   // Sums every placed item's soul cost (its price tier, via
-  // resolveBuildItem) grouped by category, across ALL sections — the
-  // investment mechanic is a single global total per category, not a
-  // per-section one, matching how it actually works in-game.
+  // resolveBuildItem) grouped by category, across ALL non-optional
+  // sections — the investment mechanic is a single global total per
+  // category, not a per-section one, matching how it actually works
+  // in-game. Optional sections are excluded since their items represent
+  // situational/alternative picks that aren't necessarily part of the
+  // actual build.
   function calculateInvestmentTotals() {
     const totals = { weapon: 0, vitality: 0, spirit: 0 };
     buildState.sections.forEach((section) => {
+      if (section.optional) return;
       section.items.forEach((it) => {
         const resolved = resolveBuildItem(it.category, it.file);
         if (resolved) totals[it.category] += resolved.tier;
@@ -954,13 +1063,16 @@
   // Lightning Scroll accounts for the 6,400-12,800 range, even though
   // both cost the same. Tier indices (not raw soul amounts) are compared
   // since segments represent tier thresholds, not a proportional/
-  // continuous scale.
+  // continuous scale. Optional sections are skipped entirely (same as
+  // calculateInvestmentTotals) — hovering an item in one never
+  // highlights anything, since it isn't contributing to the total.
   function highlightInvestmentContribution(category, file) {
     if (!investmentBarEls) return;
     let runningTotal = 0;
     let fromTotal = null;
     let toTotal = null;
     buildState.sections.some((section) => {
+      if (section.optional) return false;
       return section.items.some((it) => {
         if (it.category !== category) return false;
         const resolved = resolveBuildItem(it.category, it.file);
@@ -1027,6 +1139,66 @@
     clearBtn.addEventListener("click", clearAllSections);
     sectionActionsRowEl.appendChild(clearBtn);
 
+    // Title + hero picker sit inline on the right side of the same row
+    // (see .build-section-actions-row in style.css), not a separate row.
+    const heroPickerWrap = document.createElement("div");
+    heroPickerWrap.className = "build-hero-picker-wrap";
+
+    const heroPickerBtn = document.createElement("button");
+    heroPickerBtn.type = "button";
+    heroPickerBtn.className = "build-hero-picker-btn";
+    heroPickerBtn.title = "Select Hero";
+    const heroPickerIcon = document.createElement("img");
+    heroPickerIcon.className = "build-hero-picker-icon";
+    heroPickerIcon.alt = "";
+    heroPickerIcon.style.display = "none";
+    heroPickerBtn.appendChild(heroPickerIcon);
+    heroPickerBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleHeroPickerDropdown();
+    });
+    heroPickerWrap.appendChild(heroPickerBtn);
+    buildHeroPickerBtnEl = heroPickerBtn;
+    buildHeroPickerIconEl = heroPickerIcon;
+
+    const heroDropdown = document.createElement("div");
+    heroDropdown.className = "build-hero-picker-dropdown";
+    HERO_LIST.forEach((hero) => {
+      const opt = document.createElement("div");
+      opt.className = "build-hero-option";
+      opt.title = hero.name;
+      const img = document.createElement("img");
+      img.src = "hero_icons/" + hero.file;
+      img.alt = hero.name;
+      opt.appendChild(img);
+      opt.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setBuildHero(hero.slug);
+      });
+      heroDropdown.appendChild(opt);
+    });
+    heroPickerWrap.appendChild(heroDropdown);
+    buildHeroDropdownEl = heroDropdown;
+
+    sectionActionsRowEl.appendChild(heroPickerWrap);
+
+    const titleInput = document.createElement("input");
+    titleInput.type = "text";
+    titleInput.className = "build-title-input";
+    titleInput.placeholder = "Unnamed Build";
+    titleInput.value = buildState.title || "";
+    titleInput.addEventListener("input", () => setBuildTitle(titleInput.value));
+    sectionActionsRowEl.appendChild(titleInput);
+
+    if (buildState.hero) {
+      const hero = HERO_LIST.find((h) => h.slug === buildState.hero);
+      if (hero) {
+        heroPickerIcon.src = "hero_icons/" + hero.file;
+        heroPickerIcon.style.display = "block";
+        heroPickerBtn.classList.add("has-hero");
+      }
+    }
+
     buildSectionsViewportEl = document.createElement("div");
     buildSectionsViewportEl.className = "build-sections-viewport";
     left.appendChild(buildSectionsViewportEl);
@@ -1085,6 +1257,13 @@
       if (!openSectionSettingsId) return;
       if (e.target.closest(".build-section-settings-btn, .build-section-settings-dropdown")) return;
       closeSectionSettingsDropdown();
+    });
+
+    // Same rationale, for the hero picker dropdown.
+    document.addEventListener("click", (e) => {
+      if (!heroPickerOpen) return;
+      if (e.target.closest(".build-hero-picker-wrap")) return;
+      closeHeroPickerDropdown();
     });
 
     renderBuildSections();
@@ -1253,6 +1432,33 @@
     renderBuildSections();
     updateShopItemUsedState();
     clearInvestmentHighlight();
+  }
+
+  function setBuildTitle(title) {
+    buildState.title = title;
+    saveBuildToStorage(buildState);
+  }
+
+  function setBuildHero(slug) {
+    buildState.hero = slug;
+    saveBuildToStorage(buildState);
+    const hero = HERO_LIST.find((h) => h.slug === slug);
+    if (buildHeroPickerIconEl && hero) {
+      buildHeroPickerIconEl.src = "hero_icons/" + hero.file;
+      buildHeroPickerIconEl.style.display = "block";
+    }
+    if (buildHeroPickerBtnEl) buildHeroPickerBtnEl.classList.add("has-hero");
+    closeHeroPickerDropdown();
+  }
+
+  function toggleHeroPickerDropdown() {
+    heroPickerOpen = !heroPickerOpen;
+    if (buildHeroDropdownEl) buildHeroDropdownEl.classList.toggle("is-open", heroPickerOpen);
+  }
+
+  function closeHeroPickerDropdown() {
+    heroPickerOpen = false;
+    if (buildHeroDropdownEl) buildHeroDropdownEl.classList.remove("is-open");
   }
 
   function toggleSectionOptional(id) {
@@ -1497,9 +1703,23 @@
     e.preventDefault();
     const startX = e.clientX;
     const startY = e.clientY;
+    // .build-sections-container (sectionEl's ancestor) is transform:scale'd
+    // — see its CSS — so getBoundingClientRect() here returns RENDERED
+    // (post-scale) pixels, while widthForColumns/heightForRows and
+    // whatever resizeSection ultimately saves are all in NATIVE
+    // (pre-scale) design-space pixels, the same space section.width/
+    // height are always interpreted in elsewhere (buildSectionEl applies
+    // them as literal inline styles read back into this same scaled
+    // container). Mixing the two used to save a rendered-pixel value as
+    // if it were native — harmless-looking at ~100% scale (a couple px
+    // off) but a real, visible jump at any other scale — so everything
+    // below is measured/computed in rendered pixels only for the parts
+    // that must be (mouse deltas), then divided by scale before it ever
+    // reaches the native-unit column/row math.
+    const scale = sectionsContainerEl.getBoundingClientRect().width / sectionsContainerEl.offsetWidth;
     const startRect = sectionEl.getBoundingClientRect();
     const headerEl = sectionEl.querySelector(".build-section-header");
-    const headerHeight = headerEl.getBoundingClientRect().height;
+    const headerHeight = headerEl.getBoundingClientRect().height / scale;
 
     function onMouseMove(moveEvent) {
       // Self-heals a resize session whose mouseup never reached this
@@ -1514,8 +1734,8 @@
         onMouseUp();
         return;
       }
-      const rawWidth = startRect.width + (moveEvent.clientX - startX);
-      const rawHeight = startRect.height + (moveEvent.clientY - startY);
+      const rawWidth = (startRect.width + (moveEvent.clientX - startX)) / scale;
+      const rawHeight = (startRect.height + (moveEvent.clientY - startY)) / scale;
       const snappedWidth = widthForColumns(columnsForWidth(rawWidth));
       const snappedHeight = heightForRows(rowsForHeight(rawHeight, headerHeight), headerHeight);
       sectionEl.style.width = snappedWidth + "px";
@@ -1526,8 +1746,12 @@
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("blur", onMouseUp);
-      const finalRect = sectionEl.getBoundingClientRect();
-      resizeSection(sectionEl.dataset.sectionId, Math.round(finalRect.width), Math.round(finalRect.height));
+      // Read back the native-unit values onMouseMove already computed
+      // and applied as inline styles (or, if the mouse never moved, the
+      // section's pre-existing native size) — not another
+      // getBoundingClientRect(), which would reintroduce the same
+      // rendered-vs-native mismatch this whole function exists to avoid.
+      resizeSection(sectionEl.dataset.sectionId, parseFloat(sectionEl.style.width), parseFloat(sectionEl.style.minHeight));
     }
 
     document.addEventListener("mousemove", onMouseMove);
