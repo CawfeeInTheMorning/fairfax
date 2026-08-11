@@ -21,9 +21,10 @@
 
   // Portrait picker options for the build title row — hero_icons/ has no
   // index of its own (a static site can't list a directory at runtime),
-  // so this mirrors its actual file list by hand. Display names are
+  // so this mirrors its actual file list by hand (minus silver_wolf,
+  // deliberately excluded — see HERO_NAME_OVERRIDES). Display names are
   // derived from the filename slug with a couple of manual overrides
-  // (McGinnis' capitalization, Mo & Krill's "&", the two Silver forms)
+  // (McGinnis' capitalization, Mo & Krill's "&", Silver's shortened name)
   // that a generic title-case pass would get wrong.
   const HERO_SLUGS = [
     "abrams",
@@ -55,7 +56,6 @@
     "seven",
     "shiv",
     "silver_human",
-    "silver_wolf",
     "sinclair",
     "venator",
     "victor",
@@ -71,8 +71,7 @@
     lady_geist: "Lady Geist",
     mcginnis: "McGinnis",
     mo_and_krill: "Mo & Krill",
-    silver_human: "Silver (Human)",
-    silver_wolf: "Silver (Wolf)",
+    silver_human: "Silver",
   };
   const HERO_LIST = HERO_SLUGS.map((slug) => ({
     slug,
@@ -89,6 +88,12 @@
   const ITEM_SLOT_GAP = 4;
   const ITEMS_PADDING = 12; // each side of .build-section-items
   const SECTION_BORDER = 2; // each side of .build-section
+  const DEFAULT_SECTION_ROW_H = 190; // heightForRows(1, ~37px header) — matches addBuildSection's default section size
+  const SECTIONS_ROW_GAP = 32; // matches .build-sections-container's gap (style.css)
+  // Floor used by updateInvestmentBarsContentScale so the investment panel
+  // never shrinks thinner than "2 full rows of default-size sections" tall,
+  // even when there's only 0 or 1 row actually present.
+  const TWO_ROW_SECTIONS_NATIVE_H = 2 * DEFAULT_SECTION_ROW_H + SECTIONS_ROW_GAP;
 
   const shopEl = document.getElementById("shop-panels");
   const tabsEl = document.getElementById("category-tabs");
@@ -114,6 +119,7 @@
   let addSectionBtnViewportEl = null;
   let buildHeroPickerBtnEl = null;
   let buildHeroPickerIconEl = null;
+  let buildHeroPickerNameEl = null;
   let buildHeroDropdownEl = null;
   let heroPickerOpen = false;
   let dragPayload = null; // set on dragstart, read on drop (dataTransfer.getData is unreliable during dragover in some browsers)
@@ -1122,24 +1128,8 @@
     sectionActionsRowEl.className = "build-section-actions-row";
     addSectionBtnViewportEl.appendChild(sectionActionsRowEl);
 
-    const addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.className = "build-add-section-btn";
-    const addBtnIcon = document.createElement("span");
-    addBtnIcon.className = "build-add-section-icon";
-    addBtn.appendChild(addBtnIcon);
-    addBtn.appendChild(document.createTextNode("Add Section"));
-    addBtn.addEventListener("click", addBuildSection);
-    sectionActionsRowEl.appendChild(addBtn);
-
-    const clearBtn = document.createElement("button");
-    clearBtn.type = "button";
-    clearBtn.className = "build-clear-sections-btn";
-    clearBtn.appendChild(document.createTextNode("Clear"));
-    clearBtn.addEventListener("click", clearAllSections);
-    sectionActionsRowEl.appendChild(clearBtn);
-
-    // Title + hero picker sit inline on the right side of the same row
+    // Title + hero picker sit inline on the left side of the row; Add
+    // Section/Clear are appended last (below) so they land on the right
     // (see .build-section-actions-row in style.css), not a separate row.
     const heroPickerWrap = document.createElement("div");
     heroPickerWrap.className = "build-hero-picker-wrap";
@@ -1148,11 +1138,29 @@
     heroPickerBtn.type = "button";
     heroPickerBtn.className = "build-hero-picker-btn";
     heroPickerBtn.title = "Select Hero";
+
+    // Icon lives in its own slot (rather than directly on the button) so
+    // the icon_person.svg placeholder can be centered just over the icon
+    // area via ::after, now that the button also holds name text + the
+    // dropdown caret alongside it.
+    const heroPickerIconSlot = document.createElement("span");
+    heroPickerIconSlot.className = "build-hero-picker-icon-slot";
     const heroPickerIcon = document.createElement("img");
     heroPickerIcon.className = "build-hero-picker-icon";
     heroPickerIcon.alt = "";
     heroPickerIcon.style.display = "none";
-    heroPickerBtn.appendChild(heroPickerIcon);
+    heroPickerIconSlot.appendChild(heroPickerIcon);
+    heroPickerBtn.appendChild(heroPickerIconSlot);
+
+    const heroPickerName = document.createElement("span");
+    heroPickerName.className = "build-hero-picker-name";
+    heroPickerName.textContent = "Select Hero";
+    heroPickerBtn.appendChild(heroPickerName);
+
+    const heroPickerCaret = document.createElement("span");
+    heroPickerCaret.className = "build-hero-picker-caret";
+    heroPickerBtn.appendChild(heroPickerCaret);
+
     heroPickerBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleHeroPickerDropdown();
@@ -1160,7 +1168,11 @@
     heroPickerWrap.appendChild(heroPickerBtn);
     buildHeroPickerBtnEl = heroPickerBtn;
     buildHeroPickerIconEl = heroPickerIcon;
+    buildHeroPickerNameEl = heroPickerName;
 
+    // Vertical list (icon column + name column per row) rather than a
+    // grid, so names read left-to-right beside their icon instead of
+    // needing to be centered under it.
     const heroDropdown = document.createElement("div");
     heroDropdown.className = "build-hero-picker-dropdown";
     HERO_LIST.forEach((hero) => {
@@ -1171,6 +1183,10 @@
       img.src = "hero_icons/" + hero.file;
       img.alt = hero.name;
       opt.appendChild(img);
+      const label = document.createElement("span");
+      label.className = "build-hero-option-name";
+      label.textContent = hero.name;
+      opt.appendChild(label);
       opt.addEventListener("click", (e) => {
         e.stopPropagation();
         setBuildHero(hero.slug);
@@ -1190,11 +1206,29 @@
     titleInput.addEventListener("input", () => setBuildTitle(titleInput.value));
     sectionActionsRowEl.appendChild(titleInput);
 
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "build-add-section-btn";
+    const addBtnIcon = document.createElement("span");
+    addBtnIcon.className = "build-add-section-icon";
+    addBtn.appendChild(addBtnIcon);
+    addBtn.appendChild(document.createTextNode("Add Section"));
+    addBtn.addEventListener("click", addBuildSection);
+    sectionActionsRowEl.appendChild(addBtn);
+
+    const clearBtn = document.createElement("button");
+    clearBtn.type = "button";
+    clearBtn.className = "build-clear-sections-btn";
+    clearBtn.appendChild(document.createTextNode("Clear"));
+    clearBtn.addEventListener("click", clearAllSections);
+    sectionActionsRowEl.appendChild(clearBtn);
+
     if (buildState.hero) {
       const hero = HERO_LIST.find((h) => h.slug === buildState.hero);
       if (hero) {
         heroPickerIcon.src = "hero_icons/" + hero.file;
         heroPickerIcon.style.display = "block";
+        heroPickerName.textContent = hero.name;
         heroPickerBtn.classList.add("has-hero");
       }
     }
@@ -1447,6 +1481,7 @@
       buildHeroPickerIconEl.src = "hero_icons/" + hero.file;
       buildHeroPickerIconEl.style.display = "block";
     }
+    if (buildHeroPickerNameEl && hero) buildHeroPickerNameEl.textContent = hero.name;
     if (buildHeroPickerBtnEl) buildHeroPickerBtnEl.classList.add("has-hero");
     closeHeroPickerDropdown();
   }
@@ -2024,10 +2059,13 @@
         }
       }
       // .shop-builds-inner's width (and therefore .build-sections-container's
-      // and .investment-bars-content's scale factors, both keyed off that
-      // same cqw) changes right along with this, so both viewport heights
-      // need recomputing too.
+      // scale factor, and .shop-builds-right's own width, which
+      // updateInvestmentBarsContentScale's width cap depends on) changes
+      // right along with this, so everything downstream needs recomputing
+      // too. Content scale must run before its own viewport height sync,
+      // since that reads the content's just-updated rendered size.
       updateBuildSectionsViewportHeight();
+      updateInvestmentBarsContentScale();
       updateInvestmentBarsViewportHeight();
       updateInvestmentBarsTopAlign();
       updateAddSectionBtnViewport();
@@ -2054,9 +2092,58 @@
 
   function syncBuildSectionsScale() {
     if (!sectionsContainerEl) return;
-    const ro = new ResizeObserver(updateBuildSectionsViewportHeight);
+    const ro = new ResizeObserver(() => {
+      updateBuildSectionsViewportHeight();
+      updateInvestmentBarsContentScale();
+      updateInvestmentBarsViewportHeight();
+    });
     ro.observe(sectionsContainerEl);
     updateBuildSectionsViewportHeight();
+  }
+
+  // Solves for whatever scale makes .investment-bars-content's rendered
+  // height match a fixed "2 full rows of default-size sections" target
+  // (TWO_ROW_SECTIONS_NATIVE_H, scaled down in lockstep with the sections
+  // beside it), once the panel's own non-scaling chrome (header +
+  // .investment-bars-body padding + the panel's border) is accounted for
+  // — see the CSS comment on .investment-bars-content for why a plain
+  // cqw-based scale can't do this on its own. The target is locked to
+  // that fixed reference rather than measured from
+  // .build-sections-container's actual current height, so the panel
+  // stays exactly this size regardless of how many rows of sections are
+  // actually present — including a 3rd row, or a single section resized
+  // taller than 2 rows — rather than growing to match them.
+  // offsetWidth/offsetHeight (not getBoundingClientRect) give the
+  // content's NATIVE pre-transform size, since CSS transforms don't
+  // affect layout box size the way they affect the painted rect.
+  function updateInvestmentBarsContentScale() {
+    if (!investmentBarsContentEl || !investmentBarsEl || !sectionsContainerEl) return;
+    const headerEl = investmentBarsEl.querySelector(".investment-bars-header");
+    const bodyEl = investmentBarsEl.querySelector(".investment-bars-body");
+    if (!headerEl || !bodyEl) return;
+    const headerH = headerEl.getBoundingClientRect().height;
+    const bodyCs = getComputedStyle(bodyEl);
+    const panelCs = getComputedStyle(investmentBarsEl);
+    const chromeH = headerH + parseFloat(bodyCs.paddingTop) + parseFloat(bodyCs.paddingBottom) + parseFloat(panelCs.borderTopWidth) + parseFloat(panelCs.borderBottomWidth);
+    const chromeW = parseFloat(bodyCs.paddingLeft) + parseFloat(bodyCs.paddingRight) + parseFloat(panelCs.borderLeftWidth) + parseFloat(panelCs.borderRightWidth);
+
+    const nativeContentH = investmentBarsContentEl.offsetHeight;
+    const nativeContentW = investmentBarsContentEl.offsetWidth;
+    if (!nativeContentH || !nativeContentW) return;
+
+    // Native-to-rendered scale of .build-sections-container itself (same
+    // technique as startSectionResize) — used to convert the fixed "2 full
+    // rows" target into the same rendered-pixel space as the sections
+    // beside it, so it shrinks/grows right along with them instead of
+    // staying pinned at a fixed pixel size.
+    const sectionsScale = sectionsContainerEl.offsetWidth ? sectionsContainerEl.getBoundingClientRect().width / sectionsContainerEl.offsetWidth : 1;
+    const targetH = TWO_ROW_SECTIONS_NATIVE_H * sectionsScale;
+    const scaleY = Math.max(0, targetH - chromeH) / nativeContentH;
+    const availableW = investmentBarsEl.getBoundingClientRect().width - chromeW;
+    const scaleX = Math.max(0, availableW) / nativeContentW;
+    const scale = Math.min(1, scaleY, scaleX);
+
+    investmentBarsContentEl.style.transform = "scale(" + scale + ")";
   }
 
   // Same technique again — .build-section-actions-row (Add Section +

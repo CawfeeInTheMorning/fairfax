@@ -355,17 +355,20 @@ body {
   position: relative;
 }
 
-/* Fixed-native-width block scaled as one rigid unit via a container-query-
-   relative transform — same technique as .build-sections-container/
-   .tier-grid — so the souls column + pills shrink proportionally once the
-   panel gets squeezed narrower than their native size. min(1, ...) caps
-   the factor at 100% so they never grow past native size when the panel
-   is wider (that extra width just centers them instead, via
-   .investment-bars-body's justify-content). The `- 32px` accounts for
-   .investment-bars' own border (4px) + .investment-bars-body's horizontal
-   padding (28px), which don't shrink — cqw here is relative to
-   .shop-builds-right (the full panel column), not just this content's
-   own share of it. */
+/* Fixed-native-width block, scaled as one rigid unit — same technique as
+   .build-sections-container/.tier-grid — so the souls column + pills
+   shrink proportionally once the panel gets squeezed narrower than their
+   native size. Unlike those, the scale factor here is computed in JS
+   (updateInvestmentBarsContentScale) rather than a cqw calc(): this
+   panel's header + .investment-bars-body's padding + the panel's own
+   border sit OUTSIDE this transform and don't shrink with it, so a
+   width-only cqw formula (as used previously) makes the panel's total
+   height fall out of sync with .build-sections-container's height as
+   both columns shrink at slightly different rates — the panel ends up
+   taller than the sections beside it. JS instead solves directly for
+   whatever scale makes header + padding + border + this (scaled) content
+   sum to .build-sections-container's actual rendered height, so the two
+   heights always match. `scale(1)` here is just the pre-JS fallback. */
 .investment-bars-content {
   position: absolute;
   top: 0;
@@ -373,7 +376,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  transform: scale(min(1, calc((100cqw - 32px) / var(--investment-bars-content-native-w))));
+  transform: scale(1);
   transform-origin: top left;
 }
 
@@ -576,6 +579,11 @@ body {
    at this button's ~40px rendered height (280 * 40/81), so the texture
    fills the box exactly with no horizontal stretch/squish either way. */
 .build-add-section-btn {
+  /* Pushes itself + .build-clear-sections-btn after it (rather than just
+     .build-clear-sections-btn) to the row's far right edge, rather than
+     sitting wherever the hero picker + title input's own width happens
+     to end. */
+  margin-left: auto;
   background-image: url("../frontend_assets/shop_header_large.png");
   background-size: 100% 100%;
   width: 138px;
@@ -611,15 +619,20 @@ body {
 }
 
 .build-hero-picker-btn {
-  position: relative;
-  width: 41px;
-  height: 41px;
-  padding: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background-color: rgb(15 13 19);
+  gap: 8px;
+  height: 41px;
+  /* Same width as .build-add-section-btn, which uses this same image —
+     matches shop_header_large.png's own ratio (280x81) at this ~41px
+     height, so background-size:100% 100% shows the whole texture with
+     no stretch or crop, instead of the crop varying with content-driven
+     width like "auto 100%" + a variable-width box did. */
+  width: 138px;
+  padding: 0 10px 0 0;
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_header_large.png");
+  background-size: 100% 100%;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -629,10 +642,21 @@ body {
   filter: brightness(1.3);
 }
 
+.build-hero-picker-icon-slot {
+  position: relative;
+  width: 41px;
+  height: 41px;
+  padding: 2px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 4px 0 0 4px;
+}
+
 /* Generic placeholder shown until a hero is actually picked — hidden
    (see .has-hero below) once .build-hero-picker-icon has a real
    portrait to show instead. */
-.build-hero-picker-btn::after {
+.build-hero-picker-icon-slot::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -647,7 +671,7 @@ body {
   opacity: 0.75;
 }
 
-.build-hero-picker-btn.has-hero::after {
+.build-hero-picker-btn.has-hero .build-hero-picker-icon-slot::after {
   display: none;
 }
 
@@ -657,17 +681,44 @@ body {
   object-fit: cover;
 }
 
+.build-hero-picker-name {
+  flex: 1;
+  min-width: 0;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 15px;
+  color: #f2ead9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Signals this button opens a dropdown, same idea as a native <select>'s
+   arrow — sits after the name, at the button's own right edge. */
+.build-hero-picker-caret {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  margin-left: auto;
+  background-image: url("../frontend_assets/icon_dropdown.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: invert(1);
+  opacity: 0.75;
+}
+
+/* Vertical list — icon column + name column per row — rather than a
+   grid, so each name reads left-to-right beside its own icon. */
 .build-hero-picker-dropdown {
   display: none;
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  z-index: 10;
-  grid-template-columns: repeat(6, 40px);
-  gap: 6px;
-  max-height: 260px;
+  flex-direction: column;
+  width: 210px;
+  max-height: 320px;
   overflow-y: auto;
-  padding: 10px;
+  padding: 6px;
   background-color: rgb(15 13 19);
   border: 1px solid rgba(240, 236, 226, 0.15);
   border-radius: 4px;
@@ -675,7 +726,7 @@ body {
 }
 
 .build-hero-picker-dropdown.is-open {
-  display: grid;
+  display: flex;
   /* Above the build sections/items below it (those top out around
      z-index 6 for a selected .mod-box) — this dropdown sits below the
      title row but visually needs to float over everything under it. */
@@ -683,23 +734,43 @@ body {
 }
 
 .build-hero-option {
-  width: 40px;
-  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px;
   border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
 }
 
 .build-hero-option:hover {
-  border-color: #00fff5;
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .build-hero-option img {
-  width: 100%;
-  height: 100%;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   object-fit: cover;
   display: block;
+}
+
+.build-hero-option:hover img {
+  border-color: #00fff5;
+}
+
+.build-hero-option-name {
+  flex: 1;
+  min-width: 0;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #f2ead9;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .build-title-input {
