@@ -89,11 +89,18 @@
   const ITEMS_PADDING = 12; // each side of .build-section-items
   const SECTION_BORDER = 2; // each side of .build-section
   const DEFAULT_SECTION_ROW_H = 190; // heightForRows(1, ~37px header) — matches addBuildSection's default section size
+  const DEFAULT_SECTION_ROW_W = 276; // widthForColumns(3) — matches addBuildSection's default section size
   const SECTIONS_ROW_GAP = 32; // matches .build-sections-container's gap (style.css)
   // Floor used by updateInvestmentBarsContentScale so the investment panel
   // never shrinks thinner than "2 full rows of default-size sections" tall,
   // even when there's only 0 or 1 row actually present.
   const TWO_ROW_SECTIONS_NATIVE_H = 2 * DEFAULT_SECTION_ROW_H + SECTIONS_ROW_GAP;
+  // Hard cap on .shop-builds' total rendered height (matches the CSS
+  // max-height on .shop-builds) — used to predict whether one more
+  // default-size section would still fit, so the Add Section button can
+  // be disabled *before* a section silently gets clipped off rather than
+  // after.
+  const SHOP_BUILDS_MAX_HEIGHT = 950;
 
   const shopEl = document.getElementById("shop-panels");
   const tabsEl = document.getElementById("category-tabs");
@@ -117,6 +124,7 @@
   let openSectionSettingsId = null; // id of the section whose settings dropdown is open, if any
   let sectionActionsRowEl = null;
   let addSectionBtnViewportEl = null;
+  let addSectionBtnEl = null;
   let buildHeroPickerBtnEl = null;
   let buildHeroPickerIconEl = null;
   let buildHeroPickerNameEl = null;
@@ -1060,6 +1068,125 @@
     });
   }
 
+  // Flattens every placed item across all non-optional sections into buy
+  // order — first section to last, first item to last within a section —
+  // same ordering rule as the investment-bar hover attribution above.
+  // Each item also carries `cumulative`: the running total of every
+  // same-category item at or before it in that order (so e.g. a second
+  // weapon item's bar reaches its own cost PLUS every earlier weapon
+  // item's cost, tracking that category's investment progress rather
+  // than just this one item's own price) — same per-category summing
+  // calculateInvestmentTotals does, just tracked as a running list
+  // instead of collapsed into one final total. Capped at 28,800 to match
+  // that same function's cap (the investment mechanic's own ceiling).
+  function collectGraphTimelineItems() {
+    const list = [];
+    const runningTotals = { weapon: 0, vitality: 0, spirit: 0 };
+    buildState.sections.forEach((section) => {
+      if (section.optional) return;
+      section.items.forEach((it) => {
+        const resolved = resolveBuildItem(it.category, it.file);
+        if (!resolved) return;
+        runningTotals[it.category] = Math.min(runningTotals[it.category] + resolved.tier, 28800);
+        list.push({
+          category: it.category,
+          file: it.file,
+          tier: resolved.tier,
+          name: resolved.item.name,
+          cumulative: runningTotals[it.category],
+        });
+      });
+    });
+    return list;
+  }
+
+  // Soul-cost milestones shown on the chart's y-axis — the investment
+  // mechanic's own INVESTMENT_TIERS milestones (items-data.js), minus
+  // 2,400 (not a round enough milestone to bother labeling) and with a 0
+  // baseline added.
+  const GRAPH_AXIS_TIERS = [0, 800, 1600, 3200, 4800, 6400, 8000, 11200, 16000, 22400, 28800];
+
+  // Leaves headroom above the tallest possible bar for its icon (see
+  // .graph-bar-icon) — bars/gridlines both scale against this reduced
+  // ceiling rather than the plot's full 100% height, so a max-tier item's
+  // icon never pokes out above the plot's own top edge.
+  const GRAPH_BAR_MAX_HEIGHT_PCT = 82;
+
+  // Maps a soul value to a vertical % position — a true linear scale
+  // against the axis's max milestone (28,800), so bar height/gridline
+  // position stay directly proportional to actual soul cost.
+  function graphAxisPercent(value) {
+    const axisMax = GRAPH_AXIS_TIERS[GRAPH_AXIS_TIERS.length - 1];
+    return (value / axisMax) * GRAPH_BAR_MAX_HEIGHT_PCT;
+  }
+
+  function renderGraphsChart() {
+    if (!shopGraphsEl) return;
+    shopGraphsEl.innerHTML = "";
+
+    const items = collectGraphTimelineItems();
+
+    const viewport = document.createElement("div");
+    viewport.className = "graph-chart-viewport";
+
+    const chart = document.createElement("div");
+    chart.className = "graph-chart";
+
+    const axis = document.createElement("div");
+    axis.className = "graph-axis";
+    GRAPH_AXIS_TIERS.forEach((tier) => {
+      const label = document.createElement("div");
+      label.className = "graph-axis-label";
+      label.style.bottom = graphAxisPercent(tier) + "%";
+      label.textContent = tier.toLocaleString();
+      axis.appendChild(label);
+    });
+    chart.appendChild(axis);
+
+    const plot = document.createElement("div");
+    plot.className = "graph-plot";
+
+    GRAPH_AXIS_TIERS.forEach((tier) => {
+      const line = document.createElement("div");
+      line.className = "graph-gridline";
+      line.style.bottom = graphAxisPercent(tier) + "%";
+      plot.appendChild(line);
+    });
+
+    const barsRow = document.createElement("div");
+    barsRow.className = "graph-bars";
+    items.forEach((it) => {
+      const bar = document.createElement("div");
+      bar.className = "graph-bar";
+      bar.title = it.name + " — " + it.tier.toLocaleString() + " souls (running total: " + it.cumulative.toLocaleString() + ")";
+
+      const icon = document.createElement("img");
+      icon.className = "graph-bar-icon";
+      icon.src = iconPath(it.category, it.file);
+      icon.alt = "";
+      bar.appendChild(icon);
+
+      const rect = document.createElement("div");
+      rect.className = "graph-bar-rect is-" + it.category;
+      rect.style.height = graphAxisPercent(it.cumulative) + "%";
+      bar.appendChild(rect);
+
+      barsRow.appendChild(bar);
+    });
+    plot.appendChild(barsRow);
+
+    if (!items.length) {
+      const empty = document.createElement("div");
+      empty.className = "graph-empty-message";
+      empty.textContent = "No items in build";
+      plot.appendChild(empty);
+    }
+
+    chart.appendChild(plot);
+    viewport.appendChild(chart);
+    shopGraphsEl.appendChild(viewport);
+  }
+
   // Hovering a placed item highlights the segment range on its category's
   // bar that this ONE item's soul cost accounts for, attributed by
   // placement order (first section to last, first item to last within a
@@ -1215,6 +1342,7 @@
     addBtn.appendChild(document.createTextNode("Add Section"));
     addBtn.addEventListener("click", addBuildSection);
     sectionActionsRowEl.appendChild(addBtn);
+    addSectionBtnEl = addBtn;
 
     const clearBtn = document.createElement("button");
     clearBtn.type = "button";
@@ -1310,6 +1438,8 @@
     buildState.sections.forEach((section, index) => frag.appendChild(buildSectionEl(section, index)));
     sectionsContainerEl.appendChild(frag);
     renderInvestmentBars();
+    renderGraphsChart();
+    updateAddSectionBtnAvailability();
   }
 
   function buildSectionEl(section) {
@@ -2069,6 +2199,7 @@
       updateInvestmentBarsViewportHeight();
       updateInvestmentBarsTopAlign();
       updateAddSectionBtnViewport();
+      updateAddSectionBtnAvailability();
     }
     const ro = new ResizeObserver(update);
     ro.observe(shopEl);
@@ -2090,12 +2221,68 @@
     buildSectionsViewportEl.style.height = h + "px";
   }
 
+  // Predicts whether one more default-size section would still fit inside
+  // .shop-builds' SHOP_BUILDS_MAX_HEIGHT cap, so Add Section can be
+  // disabled *before* a new section would silently get clipped by that
+  // cap rather than after. Reads the already-laid-out DOM (which row
+  // existing sections wrapped into, how much width is left in it)
+  // instead of re-implementing flex-wrap's own packing algorithm.
+  function updateAddSectionBtnAvailability() {
+    if (!addSectionBtnEl || !shopBuildsEl || !sectionsContainerEl) return;
+    const scale = sectionsContainerEl.offsetWidth ? sectionsContainerEl.getBoundingClientRect().width / sectionsContainerEl.offsetWidth : 1;
+    const sections = Array.from(sectionsContainerEl.querySelectorAll(".build-section"));
+
+    let addsNewRow;
+    let rowGrowthNative;
+    if (!sections.length) {
+      // First section ever — nothing to wrap against, just grows from ~0.
+      addsNewRow = true;
+      rowGrowthNative = DEFAULT_SECTION_ROW_H;
+    } else {
+      let lastRowTop = -Infinity;
+      sections.forEach((s) => {
+        lastRowTop = Math.max(lastRowTop, Math.round(s.getBoundingClientRect().top));
+      });
+      const lastRow = sections.filter((s) => Math.round(s.getBoundingClientRect().top) === lastRowTop);
+      const lastRowRight = Math.max(...lastRow.map((s) => s.getBoundingClientRect().right));
+      const containerRight = sectionsContainerEl.getBoundingClientRect().right;
+      const neededWidth = (DEFAULT_SECTION_ROW_W + SECTIONS_ROW_GAP) * scale;
+      addsNewRow = containerRight - lastRowRight < neededWidth;
+      rowGrowthNative = SECTIONS_ROW_GAP + DEFAULT_SECTION_ROW_H;
+    }
+
+    // Computed directly from .shop-builds-inner's padding + the left
+    // column's own children, rather than read off shopBuildsEl's own
+    // rect — that outer box's height depends on .build-sections-viewport
+    // and .investment-bars-viewport, both of which are synced by a
+    // ResizeObserver (necessarily async) and would otherwise still
+    // reflect the PREVIOUS render for one tick, undercounting height
+    // across several adds in a row with no repaint in between.
+    if (!sectionActionsRowEl) return;
+    const innerEl = shopBuildsEl.querySelector(".shop-builds-inner");
+    const leftEl = shopBuildsEl.querySelector(".shop-builds-left");
+    if (!innerEl || !leftEl) return;
+    const innerCs = getComputedStyle(innerEl);
+    const leftCs = getComputedStyle(leftEl);
+    const paddingV = parseFloat(innerCs.paddingTop) + parseFloat(innerCs.paddingBottom);
+    const leftGap = parseFloat(leftCs.rowGap) || 0;
+    const actionsRowH = sectionActionsRowEl.getBoundingClientRect().height;
+    const sectionsH = sectionsContainerEl.getBoundingClientRect().height;
+    const rightColH = shopBuildsRightEl ? shopBuildsRightEl.getBoundingClientRect().height : 0;
+
+    const leftColH = actionsRowH + leftGap + sectionsH;
+    const currentHeight = paddingV + Math.max(leftColH, rightColH);
+    const projectedHeight = currentHeight + (addsNewRow ? rowGrowthNative * scale : 0);
+    addSectionBtnEl.disabled = projectedHeight > SHOP_BUILDS_MAX_HEIGHT;
+  }
+
   function syncBuildSectionsScale() {
     if (!sectionsContainerEl) return;
     const ro = new ResizeObserver(() => {
       updateBuildSectionsViewportHeight();
       updateInvestmentBarsContentScale();
       updateInvestmentBarsViewportHeight();
+      updateAddSectionBtnAvailability();
     });
     ro.observe(sectionsContainerEl);
     updateBuildSectionsViewportHeight();

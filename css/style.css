@@ -55,6 +55,11 @@
      + their gaps, measured in-browser. */
   --investment-bars-content-native-w: 293px;
 
+  /* .graph-chart's "100% scale" reference width — sized to fit
+     .shop-graphs' own padded content area at that panel's native/largest
+     rendered size, given its background image's fixed aspect ratio. */
+  --graph-chart-native-w: 1464px;
+
   /* Scattered black-dot grain texture, varied sizes/opacities for a
      random noise look. Shared via variable so it can be reused on
      any tab background without duplicating the gradient list. */
@@ -150,7 +155,12 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #0b0a0d;
+  background-color: #0b0a0d;
+  background-image: url("../frontend_assets/background_gothic.png");
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: #e0e0e0;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-weight: 500;
@@ -161,13 +171,9 @@ body {
   padding: 28px 16px 12px;
 }
 
-.site-header h1 {
-  font-family: "ValvePulp", "ValveOracle", sans-serif;
-  font-size: 30px;
-  letter-spacing: 3px;
-  margin: 0;
-  color: #f2ead9;
-  text-transform: uppercase;
+.site-header-logo {
+  height: 80px;
+  width: auto;
 }
 
 .site-header p {
@@ -223,9 +229,19 @@ body {
      Height is content-driven (arbitrary number of sections) rather than
      the fixed aspect-ratio the panel used when it was just a static
      image, so the background tiles vertically at its native width
-     instead of being cropped/blurred by `cover` as content grows. */
+     instead of being cropped/blurred by `cover` as content grows.
+
+     max-height is a hard backstop against runaway growth from adding
+     sections indefinitely — app.js (updateAddSectionBtnAvailability)
+     disables Add Section before this would actually have to clip
+     anything, so overflow:hidden here should only ever act as a safety
+     net, not the primary limit. */
+  position: relative;
+  box-sizing: border-box;
   margin-bottom: 6px;
   min-height: 220px;
+  max-height: 950px;
+  overflow: hidden;
   background-color: #17141d;
   background-image: url("../frontend_assets/shop_bg_builds.png");
   background-size: 100% auto;
@@ -236,9 +252,13 @@ body {
 
 .shop-graphs {
   /* Same width/margin-left sync as .shop-builds (app.js
-     syncShopBuildsAlignment applies to both), and a static image, so it
-     uses the simpler aspect-ratio + cover approach .shop-builds itself
-     used before it grew dynamic content. */
+     syncShopBuildsAlignment applies to both), and a static background
+     image, so it uses the simpler aspect-ratio + cover approach
+     .shop-builds itself used before it grew dynamic content — the
+     timeline chart (app.js renderGraphsChart) renders on top of it. */
+  position: relative;
+  box-sizing: border-box;
+  padding: 24px;
   margin-bottom: 60px;
   aspect-ratio: 2631 / 836;
   background-image: url("../frontend_assets/shop_bg_graphs.png");
@@ -246,6 +266,134 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 6px;
+  /* Query container for .graph-chart's cqw-based scale below — matches
+     .shop-builds-left/.shop-builds-right's role for the other scaled
+     sections (.build-sections-container, .investment-bars-content). */
+  container-type: inline-size;
+}
+
+/* ---------- build timeline chart ---------- */
+
+/* Reserves layout space for .graph-chart, which is positioned out of
+   flow below (same relationship as .build-sections-viewport /
+   .build-sections-container) — a plain 100%-of-padded-content-box div so
+   .graph-chart's top:0/left:0 lands right at .shop-graphs' padding
+   edge instead of ignoring that padding the way an absolutely
+   positioned element positioned directly against a padded ancestor
+   would. */
+.graph-chart-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Fixed-native-size block (1464x400 — sized to fit .shop-graphs' own
+   padded content area at its native/largest rendered size) scaled as one
+   rigid unit via a container-query-relative transform — same technique
+   as .build-sections-container/.tier-grid, so the whole chart shrinks
+   proportionally with the panel instead of reflowing its own layout. */
+.graph-chart {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: var(--graph-chart-native-w);
+  height: 380px;
+  transform: scale(calc(100cqw / var(--graph-chart-native-w)));
+  transform-origin: top left;
+}
+
+.graph-axis {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  margin-right: 10px;
+}
+
+.graph-axis-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform: translateY(50%);
+  text-align: right;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f2ead9;
+  opacity: 0.5;
+}
+
+.graph-plot {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.graph-gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: rgba(240, 236, 226, 0.15);
+}
+
+.graph-bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.graph-bar {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 44px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.graph-bar-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.graph-bar-rect {
+  width: 100%;
+  flex-shrink: 0;
+  border-radius: 2px 2px 0 0;
+}
+
+.graph-bar-rect.is-weapon {
+  background-color: #e5b30b;
+}
+
+.graph-bar-rect.is-vitality {
+  background-color: #a6cd3c;
+}
+
+.graph-bar-rect.is-spirit {
+  background-color: #b766de;
+}
+
+.graph-empty-message {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  text-align: center;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #f2ead9;
+  opacity: 0.4;
 }
 
 .shop-builds-inner {
@@ -589,6 +737,11 @@ body {
   width: 138px;
 }
 
+.build-add-section-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Same idea, shop_header_medium.png's own ratio (219x81) at ~40px tall
    (219 * 40/81). */
 .build-clear-sections-btn {
@@ -601,6 +754,10 @@ body {
 .build-add-section-btn:hover,
 .build-clear-sections-btn:hover {
   filter: brightness(1.3);
+}
+
+.build-add-section-btn:disabled:hover {
+  filter: none;
 }
 
 .build-add-section-icon {
