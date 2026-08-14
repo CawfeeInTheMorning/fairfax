@@ -5,6 +5,11 @@
   const TIER_ORDER = [800, 1600, 3200, 6400];
   const BUILD_STORAGE_KEY = "deadlockShopBuild";
   const BUILD_STORAGE_VERSION = 1;
+  // Separate key: an array of named snapshots (see saveCurrentBuildToLibrary),
+  // independent of BUILD_STORAGE_KEY's single "whatever's currently on the
+  // canvas" slot — the canvas keeps auto-persisting on every edit either way,
+  // this is only written to on an explicit Save.
+  const SAVED_BUILDS_STORAGE_KEY = "deadlockSavedBuilds";
   const SECTION_COLORS = [
     "rgb(83 126 139)",
     "rgb(142 162 73)",
@@ -106,6 +111,7 @@
   const tabsEl = document.getElementById("category-tabs");
   const tooltipDisplayEl = document.getElementById("tooltip-display");
   const shopBuildsEl = document.getElementById("shop-builds");
+  const shopBuildsWrapEl = document.querySelector(".shop-builds-wrap");
   const shopGraphsEl = document.getElementById("shop-graphs");
   const searchTab = document.getElementById("tab-search");
 
@@ -125,11 +131,17 @@
   let sectionActionsRowEl = null;
   let addSectionBtnViewportEl = null;
   let addSectionBtnEl = null;
+  let buildTitleInputEl = null;
   let buildHeroPickerBtnEl = null;
   let buildHeroPickerIconEl = null;
   let buildHeroPickerNameEl = null;
   let buildHeroDropdownEl = null;
   let heroPickerOpen = false;
+  let buildLibraryBtnEl = null;
+  let buildLibraryDropdownEl = null;
+  let buildLibraryListEl = null;
+  let libraryPickerOpen = false;
+  let savedBuilds = []; // [{id, name, hero, sections, savedAt}] — see loadSavedBuilds/saveCurrentBuildToLibrary
   let dragPayload = null; // set on dragstart, read on drop (dataTransfer.getData is unreliable during dragover in some browsers)
   let lastSectionPreviewIndex = null;
   let autoScrollSpeed = 0;
@@ -170,6 +182,41 @@
     }
     deselectCard();
     hideTooltipDisplay();
+  }
+
+  // Same style/behavior as buildTabs/setActiveCategory above, applied to
+  // the new vertical tab stack next to .shop-builds instead of
+  // #shop-panels — "Saved Builds" has no real content yet (see the CSS
+  // comment on .shop-builds.is-saves-tab), it's a placeholder for the
+  // eventual replacement of the My Builds dropdown.
+  function buildBuildTabsUI() {
+    const buildTabsEl = document.getElementById("build-tabs");
+    if (!buildTabsEl) return;
+
+    const buildsTab = document.createElement("button");
+    buildsTab.type = "button";
+    buildsTab.className = "build-tab is-builds active";
+    buildsTab.dataset.buildTab = "builds";
+    buildsTab.setAttribute("aria-label", "Builds");
+    buildsTab.innerHTML = '<img class="tab-icon" src="frontend_assets/shop_icon_build.png" alt="">';
+    buildsTab.addEventListener("click", () => setActiveBuildTab("builds"));
+    buildTabsEl.appendChild(buildsTab);
+
+    const savesTab = document.createElement("button");
+    savesTab.type = "button";
+    savesTab.className = "build-tab is-saves";
+    savesTab.dataset.buildTab = "saves";
+    savesTab.setAttribute("aria-label", "Saved Builds");
+    savesTab.innerHTML = '<img class="tab-icon" src="frontend_assets/shop_icon_save.png" alt="">';
+    savesTab.addEventListener("click", () => setActiveBuildTab("saves"));
+    buildTabsEl.appendChild(savesTab);
+  }
+
+  function setActiveBuildTab(tab) {
+    document.querySelectorAll(".build-tab").forEach((el) => {
+      el.classList.toggle("active", el.dataset.buildTab === tab);
+    });
+    if (shopBuildsEl) shopBuildsEl.classList.toggle("is-saves-tab", tab === "saves");
   }
 
   function buildPanels() {
@@ -814,7 +861,7 @@
   }
 
   function loadBuildFromStorage() {
-    const fallback = { version: BUILD_STORAGE_VERSION, title: "", hero: null, sections: [] };
+    const fallback = { version: BUILD_STORAGE_VERSION, title: "", hero: null, sections: [], savedBuildId: null };
     let raw;
     try {
       raw = localStorage.getItem(BUILD_STORAGE_KEY);
@@ -834,6 +881,11 @@
       title: typeof parsed.title === "string" ? parsed.title : "",
       hero: typeof parsed.hero === "string" ? parsed.hero : null,
       sections: parsed.sections,
+      // Which SAVED_BUILDS_STORAGE_KEY entry (if any) the canvas currently
+      // matches — set by saveCurrentBuildToLibrary/loadBuildFromLibrary, so
+      // a later Save updates that same entry instead of creating a
+      // duplicate, and the "My Builds" list can highlight it as current.
+      savedBuildId: typeof parsed.savedBuildId === "string" ? parsed.savedBuildId : null,
     };
   }
 
@@ -843,6 +895,51 @@
     } catch (e) {
       // Storage full/unavailable (e.g. private browsing) — the build stays
       // usable for the rest of the session, it just won't persist.
+    }
+    // Keeps the canvas's linked library entry (if any — see
+    // saveCurrentBuildToLibrary/loadBuildFromLibrary) mirroring it in real
+    // time, on every edit, not just an explicit Save. Without this, the
+    // saved entry only reflected whatever it looked like at the moment of
+    // the last Save/Load — meaning any edits made since then were
+    // invisible to "My Builds", and clicking back onto what the dropdown
+    // itself was already labeling as your CURRENT build would silently
+    // discard all of that unsaved work, reloading the stale snapshot.
+    if (state.savedBuildId) {
+      const linked = savedBuilds.find((b) => b.id === state.savedBuildId);
+      if (linked) {
+        linked.name = (state.title || "").trim() || "Unnamed Build";
+        linked.hero = state.hero;
+        linked.sections = JSON.parse(JSON.stringify(state.sections));
+        linked.savedAt = Date.now();
+        persistSavedBuilds();
+        renderSavedBuildsList();
+      }
+    }
+  }
+
+  function loadSavedBuilds() {
+    let raw;
+    try {
+      raw = localStorage.getItem(SAVED_BUILDS_STORAGE_KEY);
+    } catch (e) {
+      return [];
+    }
+    if (!raw) return [];
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      return [];
+    }
+    return Array.isArray(parsed) ? parsed : [];
+  }
+
+  function persistSavedBuilds() {
+    try {
+      localStorage.setItem(SAVED_BUILDS_STORAGE_KEY, JSON.stringify(savedBuilds));
+    } catch (e) {
+      // Storage full/unavailable — saved builds stay usable for the rest of
+      // the session, they just won't persist.
     }
   }
 
@@ -1112,12 +1209,41 @@
   // icon never pokes out above the plot's own top edge.
   const GRAPH_BAR_MAX_HEIGHT_PCT = 82;
 
-  // Maps a soul value to a vertical % position — a true linear scale
-  // against the axis's max milestone (28,800), so bar height/gridline
-  // position stay directly proportional to actual soul cost.
-  function graphAxisPercent(value) {
+  // Breakpoints defining the y-axis's scale, as [soul value, vertical %
+  // position] pairs. 0 and 11,200 anchor the low end at their TRUE
+  // proportional positions (against the 28,800 max); the milestones
+  // between them (800–8,000) are then spaced evenly across that same
+  // span instead of by their real value gaps, which crowd together low
+  // on a true linear scale. Everything above 11,200 stays a true
+  // proportional reading, unchanged.
+  const GRAPH_AXIS_BREAKPOINTS = (function () {
     const axisMax = GRAPH_AXIS_TIERS[GRAPH_AXIS_TIERS.length - 1];
-    return (value / axisMax) * GRAPH_BAR_MAX_HEIGHT_PCT;
+    const truePct = (v) => (v / axisMax) * GRAPH_BAR_MAX_HEIGHT_PCT;
+    const lowerTiers = GRAPH_AXIS_TIERS.filter((v) => v <= 11200);
+    const lowerEndPct = truePct(11200);
+    const lowerStepPct = lowerEndPct / (lowerTiers.length - 1);
+    const points = lowerTiers.map((v, i) => ({ value: v, pct: i * lowerStepPct }));
+    GRAPH_AXIS_TIERS.filter((v) => v > 11200).forEach((v) => points.push({ value: v, pct: truePct(v) }));
+    return points;
+  })();
+
+  // Maps a soul value to a vertical % position via GRAPH_AXIS_BREAKPOINTS
+  // above, interpolating between whichever two breakpoints it falls
+  // between — so a bar's height still lines up meaningfully with the
+  // gridlines on either side of it even though the scale isn't uniformly
+  // linear end to end.
+  function graphAxisPercent(value) {
+    const points = GRAPH_AXIS_BREAKPOINTS;
+    if (value <= points[0].value) return points[0].pct;
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i];
+      const b = points[i + 1];
+      if (value <= b.value) {
+        const frac = (value - a.value) / (b.value - a.value);
+        return a.pct + frac * (b.pct - a.pct);
+      }
+    }
+    return points[points.length - 1].pct;
   }
 
   function renderGraphsChart() {
@@ -1240,6 +1366,7 @@
   function buildShopBuildsUI() {
     if (!shopBuildsEl) return;
     buildState = loadBuildFromStorage();
+    savedBuilds = loadSavedBuilds();
 
     const inner = document.createElement("div");
     inner.className = "shop-builds-inner";
@@ -1247,17 +1374,65 @@
     const left = document.createElement("div");
     left.className = "shop-builds-left";
 
+    // Full-width header for .shop-builds-inner (not scoped to just the
+    // left column) — appended to inner directly, before the left/right
+    // columns below it, rather than into `left`.
     addSectionBtnViewportEl = document.createElement("div");
     addSectionBtnViewportEl.className = "build-add-section-viewport";
-    left.appendChild(addSectionBtnViewportEl);
+    inner.appendChild(addSectionBtnViewportEl);
 
     sectionActionsRowEl = document.createElement("div");
     sectionActionsRowEl.className = "build-section-actions-row";
     addSectionBtnViewportEl.appendChild(sectionActionsRowEl);
 
-    // Title + hero picker sit inline on the left side of the row; Add
-    // Section/Clear are appended last (below) so they land on the right
-    // (see .build-section-actions-row in style.css), not a separate row.
+    // My Builds + title + hero picker sit inline on the left side of the
+    // row; Add Section/Clear are appended last (below) so they land on
+    // the right (see .build-section-actions-row in style.css), not a
+    // separate row.
+    const libraryWrap = document.createElement("div");
+    libraryWrap.className = "build-library-wrap";
+
+    const libraryBtn = document.createElement("button");
+    libraryBtn.type = "button";
+    libraryBtn.className = "build-library-btn";
+    libraryBtn.title = "My Builds";
+    libraryBtn.appendChild(document.createTextNode("My Builds"));
+    const libraryCaret = document.createElement("span");
+    libraryCaret.className = "build-hero-picker-caret";
+    libraryBtn.appendChild(libraryCaret);
+    libraryBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleBuildLibraryDropdown();
+    });
+    libraryWrap.appendChild(libraryBtn);
+    buildLibraryBtnEl = libraryBtn;
+
+    const libraryDropdown = document.createElement("div");
+    libraryDropdown.className = "build-library-dropdown";
+
+    const librarySaveBtn = document.createElement("div");
+    librarySaveBtn.className = "build-library-save-btn";
+    librarySaveBtn.textContent = "+ Save Current Build";
+    librarySaveBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      saveCurrentBuildToLibrary();
+    });
+    libraryDropdown.appendChild(librarySaveBtn);
+
+    const libraryDivider = document.createElement("div");
+    libraryDivider.className = "build-library-divider";
+    libraryDropdown.appendChild(libraryDivider);
+
+    const libraryList = document.createElement("div");
+    libraryList.className = "build-library-list";
+    libraryDropdown.appendChild(libraryList);
+    buildLibraryListEl = libraryList;
+
+    libraryWrap.appendChild(libraryDropdown);
+    buildLibraryDropdownEl = libraryDropdown;
+
+    sectionActionsRowEl.appendChild(libraryWrap);
+
     const heroPickerWrap = document.createElement("div");
     heroPickerWrap.className = "build-hero-picker-wrap";
 
@@ -1332,6 +1507,7 @@
     titleInput.value = buildState.title || "";
     titleInput.addEventListener("input", () => setBuildTitle(titleInput.value));
     sectionActionsRowEl.appendChild(titleInput);
+    buildTitleInputEl = titleInput;
 
     const addBtn = document.createElement("button");
     addBtn.type = "button";
@@ -1351,15 +1527,7 @@
     clearBtn.addEventListener("click", clearAllSections);
     sectionActionsRowEl.appendChild(clearBtn);
 
-    if (buildState.hero) {
-      const hero = HERO_LIST.find((h) => h.slug === buildState.hero);
-      if (hero) {
-        heroPickerIcon.src = "hero_icons/" + hero.file;
-        heroPickerIcon.style.display = "block";
-        heroPickerName.textContent = hero.name;
-        heroPickerBtn.classList.add("has-hero");
-      }
-    }
+    updateHeroPickerDisplay();
 
     buildSectionsViewportEl = document.createElement("div");
     buildSectionsViewportEl.className = "build-sections-viewport";
@@ -1369,7 +1537,13 @@
     sectionsContainerEl.className = "build-sections-container";
     buildSectionsViewportEl.appendChild(sectionsContainerEl);
 
-    inner.appendChild(left);
+    // Left/right columns sit together in their own row, below the
+    // full-width header — same layout .shop-builds-inner used to provide
+    // directly, now one level deeper since the header needs to span both
+    // of them rather than just sitting inside `left`.
+    const columns = document.createElement("div");
+    columns.className = "shop-builds-columns";
+    columns.appendChild(left);
 
     // Right column — investment bars for now, room for more build-summary
     // info alongside them later.
@@ -1379,9 +1553,10 @@
     investmentBarsEl = buildInvestmentBarsUI();
     right.appendChild(investmentBarsEl);
 
-    inner.appendChild(right);
+    columns.appendChild(right);
     shopBuildsRightEl = right;
 
+    inner.appendChild(columns);
     shopBuildsEl.appendChild(inner);
 
     // One delegated listener set on shopBuildsEl — the stable, outermost
@@ -1428,6 +1603,14 @@
       closeHeroPickerDropdown();
     });
 
+    // Same rationale, for the My Builds dropdown.
+    document.addEventListener("click", (e) => {
+      if (!libraryPickerOpen) return;
+      if (e.target.closest(".build-library-wrap")) return;
+      closeBuildLibraryDropdown();
+    });
+
+    renderSavedBuildsList();
     renderBuildSections();
     updateShopItemUsedState();
   }
@@ -1510,7 +1693,17 @@
     optionalCheckbox.checked = !!section.optional;
     optionalCheckbox.dataset.action = "toggle-optional";
     optionalRow.appendChild(optionalCheckbox);
-    optionalRow.appendChild(document.createTextNode("Optional"));
+    const optionalText = document.createElement("span");
+    optionalText.className = "build-section-settings-optional-text";
+    const optionalLabel = document.createElement("span");
+    optionalLabel.className = "build-section-settings-optional-label";
+    optionalLabel.textContent = "Optional";
+    optionalText.appendChild(optionalLabel);
+    const optionalDesc = document.createElement("span");
+    optionalDesc.className = "build-section-settings-optional-desc";
+    optionalDesc.textContent = "Excludes this section from investment calculations.";
+    optionalText.appendChild(optionalDesc);
+    optionalRow.appendChild(optionalText);
     settingsDropdown.appendChild(optionalRow);
 
     const colorsRow = document.createElement("div");
@@ -1591,11 +1784,16 @@
 
   function clearAllSections() {
     buildState.sections = [];
+    // Clear reads as "start a fresh build" — unlink it from whatever
+    // library entry was loaded, so the next Save creates a new entry
+    // instead of silently overwriting the one just cleared away.
+    buildState.savedBuildId = null;
     openSectionSettingsId = null;
     saveBuildToStorage(buildState);
     renderBuildSections();
     updateShopItemUsedState();
     clearInvestmentHighlight();
+    renderSavedBuildsList();
   }
 
   function setBuildTitle(title) {
@@ -1603,16 +1801,29 @@
     saveBuildToStorage(buildState);
   }
 
+  // Syncs the hero-picker button's icon/name/has-hero state to whatever
+  // buildState.hero currently is — shared by setBuildHero (user picks one)
+  // and loadBuildFromLibrary (a whole different buildState swaps in), so
+  // both stay in sync with a single source of truth instead of duplicating
+  // this lookup+DOM-update logic.
+  function updateHeroPickerDisplay() {
+    const hero = buildState.hero ? HERO_LIST.find((h) => h.slug === buildState.hero) : null;
+    if (buildHeroPickerIconEl) {
+      if (hero) {
+        buildHeroPickerIconEl.src = "hero_icons/" + hero.file;
+        buildHeroPickerIconEl.style.display = "block";
+      } else {
+        buildHeroPickerIconEl.style.display = "none";
+      }
+    }
+    if (buildHeroPickerNameEl) buildHeroPickerNameEl.textContent = hero ? hero.name : "Select Hero";
+    if (buildHeroPickerBtnEl) buildHeroPickerBtnEl.classList.toggle("has-hero", !!hero);
+  }
+
   function setBuildHero(slug) {
     buildState.hero = slug;
     saveBuildToStorage(buildState);
-    const hero = HERO_LIST.find((h) => h.slug === slug);
-    if (buildHeroPickerIconEl && hero) {
-      buildHeroPickerIconEl.src = "hero_icons/" + hero.file;
-      buildHeroPickerIconEl.style.display = "block";
-    }
-    if (buildHeroPickerNameEl && hero) buildHeroPickerNameEl.textContent = hero.name;
-    if (buildHeroPickerBtnEl) buildHeroPickerBtnEl.classList.add("has-hero");
+    updateHeroPickerDisplay();
     closeHeroPickerDropdown();
   }
 
@@ -1624,6 +1835,128 @@
   function closeHeroPickerDropdown() {
     heroPickerOpen = false;
     if (buildHeroDropdownEl) buildHeroDropdownEl.classList.remove("is-open");
+  }
+
+  function toggleBuildLibraryDropdown() {
+    libraryPickerOpen = !libraryPickerOpen;
+    if (buildLibraryDropdownEl) buildLibraryDropdownEl.classList.toggle("is-open", libraryPickerOpen);
+  }
+
+  function closeBuildLibraryDropdown() {
+    libraryPickerOpen = false;
+    if (buildLibraryDropdownEl) buildLibraryDropdownEl.classList.remove("is-open");
+  }
+
+  // Snapshots the current canvas (title/hero/sections) into the saved-
+  // builds library. If this canvas already matches a saved entry
+  // (buildState.savedBuildId), that entry is overwritten in place rather
+  // than creating a duplicate — a plain re-save, not a "save as".
+  function saveCurrentBuildToLibrary() {
+    const name = (buildState.title || "").trim() || "Unnamed Build";
+    // Always a new entry — this used to update buildState.savedBuildId's
+    // existing entry in place instead, which silently overwrote whatever
+    // build had last been saved/loaded any time Save was pressed again
+    // (surprising and easy to lose work to). Loading/clearing still update
+    // savedBuildId purely for the "is-current" highlight below.
+    const id = makeId("build");
+    const snapshot = {
+      id,
+      name,
+      hero: buildState.hero,
+      sections: JSON.parse(JSON.stringify(buildState.sections)),
+      savedAt: Date.now(),
+    };
+    savedBuilds.push(snapshot);
+    buildState.savedBuildId = id;
+    saveBuildToStorage(buildState);
+    persistSavedBuilds();
+    renderSavedBuildsList();
+  }
+
+  // Replaces the whole canvas with a saved snapshot — same shape of work
+  // as loadBuildFromStorage's initial hydration, just re-running it
+  // mid-session against a library entry instead of the last-open build.
+  function loadBuildFromLibrary(id) {
+    const saved = savedBuilds.find((b) => b.id === id);
+    if (!saved) return;
+    buildState = {
+      version: BUILD_STORAGE_VERSION,
+      title: saved.name,
+      hero: saved.hero,
+      sections: JSON.parse(JSON.stringify(saved.sections)),
+      savedBuildId: saved.id,
+    };
+    saveBuildToStorage(buildState);
+    openSectionSettingsId = null;
+    if (buildTitleInputEl) buildTitleInputEl.value = buildState.title;
+    updateHeroPickerDisplay();
+    renderBuildSections();
+    updateShopItemUsedState();
+    clearInvestmentHighlight();
+    closeBuildLibraryDropdown();
+    renderSavedBuildsList();
+  }
+
+  // Removes a snapshot from the library only — the live canvas (even if it
+  // was loaded from this same entry) is left exactly as it is, just no
+  // longer considered "linked" to a (now-gone) saved entry.
+  function deleteBuildFromLibrary(id) {
+    savedBuilds = savedBuilds.filter((b) => b.id !== id);
+    if (buildState.savedBuildId === id) {
+      buildState.savedBuildId = null;
+      saveBuildToStorage(buildState);
+    }
+    persistSavedBuilds();
+    renderSavedBuildsList();
+  }
+
+  function renderSavedBuildsList() {
+    if (!buildLibraryListEl) return;
+    buildLibraryListEl.innerHTML = "";
+
+    if (!savedBuilds.length) {
+      const empty = document.createElement("div");
+      empty.className = "build-library-empty";
+      empty.textContent = "No saved builds yet";
+      buildLibraryListEl.appendChild(empty);
+      return;
+    }
+
+    savedBuilds
+      .slice()
+      .sort((a, b) => b.savedAt - a.savedAt)
+      .forEach((saved) => {
+        const row = document.createElement("div");
+        row.className = "build-library-item" + (buildState.savedBuildId === saved.id ? " is-current" : "");
+        row.title = saved.name;
+
+        const icon = document.createElement("div");
+        icon.className = "build-library-item-icon";
+        const hero = saved.hero ? HERO_LIST.find((h) => h.slug === saved.hero) : null;
+        if (hero) {
+          icon.style.backgroundImage = "url('hero_icons/" + hero.file + "')";
+        } else {
+          icon.classList.add("is-empty");
+        }
+        row.appendChild(icon);
+
+        const name = document.createElement("span");
+        name.className = "build-library-item-name";
+        name.textContent = saved.name;
+        row.appendChild(name);
+
+        const deleteBtn = document.createElement("div");
+        deleteBtn.className = "build-library-item-delete";
+        deleteBtn.title = "Delete";
+        deleteBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deleteBuildFromLibrary(saved.id);
+        });
+        row.appendChild(deleteBtn);
+
+        row.addEventListener("click", () => loadBuildFromLibrary(saved.id));
+        buildLibraryListEl.appendChild(row);
+      });
   }
 
   function toggleSectionOptional(id) {
@@ -2182,7 +2515,14 @@
       if (width > 0) {
         const marginLeft = panelsRect.left + window.scrollX + "px";
         shopBuildsEl.style.width = width + "px";
-        shopBuildsEl.style.marginLeft = marginLeft;
+        // Margin-left moved to the wrapper (rather than #shop-builds
+        // itself) so .build-tabs — a sibling of #shop-builds inside that
+        // wrapper, positioned via right:100% — has a correctly-positioned
+        // containing block to measure against. #shop-builds itself is a
+        // plain block child with no margin of its own now (see
+        // .shop-builds-wrap in style.css), so it still lands at the exact
+        // same final x position either way.
+        if (shopBuildsWrapEl) shopBuildsWrapEl.style.marginLeft = marginLeft;
         if (shopGraphsEl) {
           shopGraphsEl.style.width = width + "px";
           shopGraphsEl.style.marginLeft = marginLeft;
@@ -2198,7 +2538,6 @@
       updateInvestmentBarsContentScale();
       updateInvestmentBarsViewportHeight();
       updateInvestmentBarsTopAlign();
-      updateAddSectionBtnViewport();
       updateAddSectionBtnAvailability();
     }
     const ro = new ResizeObserver(update);
@@ -2251,27 +2590,31 @@
       rowGrowthNative = SECTIONS_ROW_GAP + DEFAULT_SECTION_ROW_H;
     }
 
-    // Computed directly from .shop-builds-inner's padding + the left
-    // column's own children, rather than read off shopBuildsEl's own
-    // rect — that outer box's height depends on .build-sections-viewport
-    // and .investment-bars-viewport, both of which are synced by a
+    // Computed directly from .shop-builds-inner's padding/gap + its
+    // children's own rects, rather than read off shopBuildsEl's own rect
+    // — that outer box's height depends on .build-sections-viewport and
+    // .investment-bars-viewport, both of which are synced by a
     // ResizeObserver (necessarily async) and would otherwise still
     // reflect the PREVIOUS render for one tick, undercounting height
     // across several adds in a row with no repaint in between.
+    //
+    // .build-section-actions-row is now a full-width header shared ABOVE
+    // both columns (not just inside .shop-builds-left the way it used to
+    // be), so its height/gap apply once, on top of whichever column ends
+    // up taller — not added only to the left column's own total the way
+    // the old single-column layout needed.
     if (!sectionActionsRowEl) return;
     const innerEl = shopBuildsEl.querySelector(".shop-builds-inner");
-    const leftEl = shopBuildsEl.querySelector(".shop-builds-left");
-    if (!innerEl || !leftEl) return;
+    if (!innerEl) return;
     const innerCs = getComputedStyle(innerEl);
-    const leftCs = getComputedStyle(leftEl);
     const paddingV = parseFloat(innerCs.paddingTop) + parseFloat(innerCs.paddingBottom);
-    const leftGap = parseFloat(leftCs.rowGap) || 0;
+    const headerGap = parseFloat(innerCs.rowGap) || 0;
     const actionsRowH = sectionActionsRowEl.getBoundingClientRect().height;
     const sectionsH = sectionsContainerEl.getBoundingClientRect().height;
     const rightColH = shopBuildsRightEl ? shopBuildsRightEl.getBoundingClientRect().height : 0;
 
-    const leftColH = actionsRowH + leftGap + sectionsH;
-    const currentHeight = paddingV + Math.max(leftColH, rightColH);
+    const columnsH = Math.max(sectionsH, rightColH);
+    const currentHeight = paddingV + actionsRowH + headerGap + columnsH;
     const projectedHeight = currentHeight + (addsNewRow ? rowGrowthNative * scale : 0);
     addSectionBtnEl.disabled = projectedHeight > SHOP_BUILDS_MAX_HEIGHT;
   }
@@ -2333,26 +2676,7 @@
     investmentBarsContentEl.style.transform = "scale(" + scale + ")";
   }
 
-  // Same technique again — .build-section-actions-row (Add Section +
-  // Clear, side by side) is a fixed-native-size, transform:scale'd block
-  // (relative to .shop-builds-left, the same cqw reference
-  // .build-sections-container uses) so it shrinks in lockstep with the
-  // sections below it instead of staying pinned at native size.
-  function updateAddSectionBtnViewport() {
-    if (!addSectionBtnViewportEl || !sectionActionsRowEl) return;
-    const r = sectionActionsRowEl.getBoundingClientRect();
-    addSectionBtnViewportEl.style.width = r.width + "px";
-    addSectionBtnViewportEl.style.height = r.height + "px";
-  }
-
-  function syncAddSectionBtnScale() {
-    if (!sectionActionsRowEl) return;
-    const ro = new ResizeObserver(updateAddSectionBtnViewport);
-    ro.observe(sectionActionsRowEl);
-    updateAddSectionBtnViewport();
-  }
-
-  // Same technique as updateBuildSectionsViewportHeight/syncBuildSectionsScale,
+// Same technique as updateBuildSectionsViewportHeight/syncBuildSectionsScale,
   // applied to .investment-bars-content (also a fixed-native-width,
   // transform:scale'd block — see the CSS comment on it — but unlike the
   // build sections, its native size is a fixed design constant rather
@@ -2398,10 +2722,10 @@
   buildPanels();
   buildSearchPanel();
   buildShopBuildsUI();
+  buildBuildTabsUI();
   syncTooltipDisplayHeight();
   syncShopBuildsAlignment();
   syncBuildSectionsScale();
   syncInvestmentBarsScale();
-  syncAddSectionBtnScale();
   setupDragAutoScroll();
 })();
