@@ -117,6 +117,7 @@
 
   let searchInputEl = null;
   let tooltipCard = null;
+  let tooltipScrollSpacerEl = null;
   let selectedCard = null;
   let activeCategory = "weapon";
   let buildState = null;
@@ -137,10 +138,12 @@
   let buildHeroPickerNameEl = null;
   let buildHeroDropdownEl = null;
   let heroPickerOpen = false;
-  let buildLibraryBtnEl = null;
-  let buildLibraryDropdownEl = null;
-  let buildLibraryListEl = null;
-  let libraryPickerOpen = false;
+  let buildSaveBtnEl = null;
+  let savedBuildsContainerEl = null;
+  let saveBuildModalEl = null;
+  let saveBuildNameInputEl = null;
+  let saveBuildHeroListEl = null;
+  let saveBuildModalHero = null; // staged hero pick while the modal is open — only committed to buildState on confirm
   let savedBuilds = []; // [{id, name, hero, sections, savedAt}] — see loadSavedBuilds/saveCurrentBuildToLibrary
   let dragPayload = null; // set on dragstart, read on drop (dataTransfer.getData is unreliable during dragover in some browsers)
   let lastSectionPreviewIndex = null;
@@ -186,9 +189,9 @@
 
   // Same style/behavior as buildTabs/setActiveCategory above, applied to
   // the new vertical tab stack next to .shop-builds instead of
-  // #shop-panels — "Saved Builds" has no real content yet (see the CSS
-  // comment on .shop-builds.is-saves-tab), it's a placeholder for the
-  // eventual replacement of the My Builds dropdown.
+  // #shop-panels — switching to "Saved Builds" swaps in the saved-build
+  // cards (renderSavedBuildsList) in place of the sections/investment-bars
+  // columns, see .shop-builds.is-saves-tab in style.css.
   function buildBuildTabsUI() {
     const buildTabsEl = document.getElementById("build-tabs");
     if (!buildTabsEl) return;
@@ -274,6 +277,36 @@
 
     inputWrap.appendChild(inputInner);
     panel.appendChild(inputWrap);
+
+    // One checkbox per distinct innate stat name (see getAllInnateStatNames)
+    // — checking any number of them shows items carrying ANY of the
+    // checked stats (combined with the text query above, which both must
+    // pass), same "OR within a facet, AND across facets" rule most
+    // faceted filter UIs use.
+    const filtersWrap = document.createElement("div");
+    filtersWrap.className = "search-filters-wrap";
+    getAllInnateStatNames().forEach((name) => {
+      const chip = document.createElement("label");
+      chip.className = "stat-filter-chip";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "stat-filter-checkbox";
+      checkbox.addEventListener("change", () => toggleStatFilter(name, checkbox.checked));
+      chip.appendChild(checkbox);
+
+      const box = document.createElement("span");
+      box.className = "stat-filter-box";
+      chip.appendChild(box);
+
+      const label = document.createElement("span");
+      label.className = "stat-filter-name";
+      label.textContent = name;
+      chip.appendChild(label);
+
+      filtersWrap.appendChild(chip);
+    });
+    panel.appendChild(filtersWrap);
 
     const results = document.createElement("div");
     results.className = "search-results";
@@ -525,7 +558,34 @@
 
     tooltipDisplayEl.appendChild(card);
 
+    tooltipScrollSpacerEl = document.createElement("div");
+    tooltipScrollSpacerEl.className = "tooltip-scroll-bottom-spacer";
+    tooltipDisplayEl.appendChild(tooltipScrollSpacerEl);
+
     tooltipCard = { root: card, top, name, costValue, body, desc, notes, notesList };
+  }
+
+  // Positions .tooltip-scroll-bottom-spacer right after the tooltip
+  // card's actual rendered bottom edge, in .tooltip-display's own real
+  // (non-transformed) coordinate space — offsetTop/offsetHeight report
+  // the card's native pre-scale box, so offsetHeight is multiplied by
+  // the card's own current transform scale (read straight off its
+  // computed matrix) to get that edge's real on-screen distance from
+  // .tooltip-display's top. Needed because the card's rendered height
+  // depends on its (variable, per-item) content, so there's no way to
+  // express this spacer's position as a fixed CSS formula. Call after
+  // any change to the card's content/visibility, and on resize (the
+  // scale itself changes as the shop panel resizes).
+  function updateTooltipScrollSpacer() {
+    if (!tooltipScrollSpacerEl || !tooltipCard || !tooltipCard.root.classList.contains("visible")) return;
+    const transform = getComputedStyle(tooltipCard.root).transform;
+    let scale = 1;
+    if (transform && transform !== "none") {
+      const match = /^matrix\(([^,]+),/.exec(transform);
+      if (match) scale = parseFloat(match[1]) || 1;
+    }
+    const realBottom = tooltipCard.root.offsetTop + tooltipCard.root.offsetHeight * scale;
+    tooltipScrollSpacerEl.style.top = realBottom + "px";
   }
 
   // Clicking an "Upgrades To/From" link: switch to that item's category if
@@ -564,6 +624,7 @@
     }
 
     tooltipCard.root.classList.add("visible");
+    updateTooltipScrollSpacer();
   }
 
   function hideTooltipDisplay() {
@@ -839,11 +900,55 @@
     return "<div " + attrs + ">" + iconHtml + "<span>" + escapeHtml(itemName) + "</span></div>";
   }
 
+  // ITEM_DETAILS' innateStats entries are free-text like "+8 Spirit Power"
+  // or "+0.75m Sprint Speed" (occasionally {text, color} objects instead
+  // of a plain string) — this strips the leading +/-<number><unit>?
+  // amount, leaving just the stat name itself ("Spirit Power", "Sprint
+  // Speed") to group/filter by.
+  function extractStatName(rawStat) {
+    const text = typeof rawStat === "string" ? rawStat : rawStat.text;
+    // Unit suffix is [a-z%]* (not a fixed %|m alternation) so any unit —
+    // "m" (Sprint Speed), "s" (Parry Cooldown), etc. — gets stripped
+    // along with the leading sign+number, not just the two units that
+    // happened to show up first.
+    return text.replace(/^[+-]\d+(\.\d+)?[a-z%]*\s*/i, "").trim();
+  }
+
+  // Every distinct innate stat name across all items, alphabetized — the
+  // checkbox list in the search panel's stat filters (buildSearchPanel).
+  function getAllInnateStatNames() {
+    const names = new Set();
+    Object.keys(ITEM_DETAILS).forEach((key) => {
+      (ITEM_DETAILS[key].innateStats || []).forEach((s) => {
+        const name = extractStatName(s);
+        if (name) names.add(name);
+      });
+    });
+    return Array.from(names).sort();
+  }
+
+  let activeStatFilters = new Set();
+
+  // Empty statSet = no filter applied (every item passes).
+  function itemHasAnyStat(category, file, statSet) {
+    if (!statSet.size) return true;
+    const details = ITEM_DETAILS[category + ":" + file];
+    const stats = (details && details.innateStats) || [];
+    return stats.some((s) => statSet.has(extractStatName(s)));
+  }
+
+  function toggleStatFilter(name, checked) {
+    if (checked) activeStatFilters.add(name);
+    else activeStatFilters.delete(name);
+    applySearchFilter(searchInputEl ? searchInputEl.value : "");
+  }
+
   function applySearchFilter(query) {
     const q = query.trim().toLowerCase();
     document.querySelectorAll(".mod-box").forEach((card) => {
-      const match = !q || card.dataset.name.toLowerCase().includes(q);
-      card.classList.toggle("search-hidden", !match);
+      const matchesQuery = !q || card.dataset.name.toLowerCase().includes(q);
+      const matchesStats = itemHasAnyStat(card.dataset.category, card.dataset.file, activeStatFilters);
+      card.classList.toggle("search-hidden", !(matchesQuery && matchesStats));
     });
     document.querySelectorAll(".search-section").forEach((section) => {
       const hasVisibleItem = Array.from(section.querySelectorAll(".mod-box")).some(
@@ -1385,53 +1490,24 @@
     sectionActionsRowEl.className = "build-section-actions-row";
     addSectionBtnViewportEl.appendChild(sectionActionsRowEl);
 
-    // My Builds + title + hero picker sit inline on the left side of the
+    // Save Build + title + hero picker sit inline on the left side of the
     // row; Add Section/Clear are appended last (below) so they land on
     // the right (see .build-section-actions-row in style.css), not a
-    // separate row.
-    const libraryWrap = document.createElement("div");
-    libraryWrap.className = "build-library-wrap";
-
-    const libraryBtn = document.createElement("button");
-    libraryBtn.type = "button";
-    libraryBtn.className = "build-library-btn";
-    libraryBtn.title = "My Builds";
-    libraryBtn.appendChild(document.createTextNode("My Builds"));
-    const libraryCaret = document.createElement("span");
-    libraryCaret.className = "build-hero-picker-caret";
-    libraryBtn.appendChild(libraryCaret);
-    libraryBtn.addEventListener("click", (e) => {
+    // separate row. Opens the confirm-name/hero modal (see
+    // buildSaveBuildModal) rather than a dropdown — the saved builds
+    // themselves now live as cards in the Saved Builds tab (see
+    // renderSavedBuildsList), not a list attached to this button.
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "build-save-btn";
+    saveBtn.title = "Save Build";
+    saveBtn.appendChild(document.createTextNode("Save Build"));
+    saveBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      toggleBuildLibraryDropdown();
+      openSaveBuildModal();
     });
-    libraryWrap.appendChild(libraryBtn);
-    buildLibraryBtnEl = libraryBtn;
-
-    const libraryDropdown = document.createElement("div");
-    libraryDropdown.className = "build-library-dropdown";
-
-    const librarySaveBtn = document.createElement("div");
-    librarySaveBtn.className = "build-library-save-btn";
-    librarySaveBtn.textContent = "+ Save Current Build";
-    librarySaveBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      saveCurrentBuildToLibrary();
-    });
-    libraryDropdown.appendChild(librarySaveBtn);
-
-    const libraryDivider = document.createElement("div");
-    libraryDivider.className = "build-library-divider";
-    libraryDropdown.appendChild(libraryDivider);
-
-    const libraryList = document.createElement("div");
-    libraryList.className = "build-library-list";
-    libraryDropdown.appendChild(libraryList);
-    buildLibraryListEl = libraryList;
-
-    libraryWrap.appendChild(libraryDropdown);
-    buildLibraryDropdownEl = libraryDropdown;
-
-    sectionActionsRowEl.appendChild(libraryWrap);
+    sectionActionsRowEl.appendChild(saveBtn);
+    buildSaveBtnEl = saveBtn;
 
     const heroPickerWrap = document.createElement("div");
     heroPickerWrap.className = "build-hero-picker-wrap";
@@ -1557,6 +1633,20 @@
     shopBuildsRightEl = right;
 
     inner.appendChild(columns);
+
+    // Saved Builds tab content — a sibling of `columns` (not nested
+    // inside it) so it inherits .shop-builds-inner's own padding/gap the
+    // same way `columns` (and .build-sections-container within it) does,
+    // rather than needing its own copy of that spacing. Hidden by default;
+    // .shop-builds.is-saves-tab toggles which of the two is visible.
+    const savedBuildsViewport = document.createElement("div");
+    savedBuildsViewport.className = "saved-builds-viewport";
+    const savedBuildsContainer = document.createElement("div");
+    savedBuildsContainer.className = "saved-builds-container";
+    savedBuildsViewport.appendChild(savedBuildsContainer);
+    savedBuildsContainerEl = savedBuildsContainer;
+    inner.appendChild(savedBuildsViewport);
+
     shopBuildsEl.appendChild(inner);
 
     // One delegated listener set on shopBuildsEl — the stable, outermost
@@ -1601,13 +1691,6 @@
       if (!heroPickerOpen) return;
       if (e.target.closest(".build-hero-picker-wrap")) return;
       closeHeroPickerDropdown();
-    });
-
-    // Same rationale, for the My Builds dropdown.
-    document.addEventListener("click", (e) => {
-      if (!libraryPickerOpen) return;
-      if (e.target.closest(".build-library-wrap")) return;
-      closeBuildLibraryDropdown();
     });
 
     renderSavedBuildsList();
@@ -1837,14 +1920,125 @@
     if (buildHeroDropdownEl) buildHeroDropdownEl.classList.remove("is-open");
   }
 
-  function toggleBuildLibraryDropdown() {
-    libraryPickerOpen = !libraryPickerOpen;
-    if (buildLibraryDropdownEl) buildLibraryDropdownEl.classList.toggle("is-open", libraryPickerOpen);
+  // Builds the "Save Build" confirmation popup once at init — a name
+  // field (pre-filled from the current title) and a hero list (same
+  // .build-hero-option/.build-hero-option-name markup the hero-picker
+  // dropdown already uses), so the user can adjust either right before
+  // the snapshot is taken rather than needing to set them on the main
+  // canvas first.
+  function buildSaveBuildModal() {
+    const overlay = document.createElement("div");
+    overlay.className = "save-build-modal-overlay";
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeSaveBuildModal();
+    });
+
+    const modal = document.createElement("div");
+    modal.className = "save-build-modal";
+    overlay.appendChild(modal);
+
+    const title = document.createElement("div");
+    title.className = "save-build-modal-title";
+    title.textContent = "Save Build";
+    modal.appendChild(title);
+
+    const nameLabel = document.createElement("label");
+    nameLabel.className = "save-build-modal-label";
+    nameLabel.textContent = "Build Name";
+    modal.appendChild(nameLabel);
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "save-build-name-input";
+    nameInput.placeholder = "Unnamed Build";
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") confirmSaveBuild();
+    });
+    modal.appendChild(nameInput);
+    saveBuildNameInputEl = nameInput;
+
+    const heroLabel = document.createElement("label");
+    heroLabel.className = "save-build-modal-label";
+    heroLabel.textContent = "Hero";
+    modal.appendChild(heroLabel);
+
+    const heroList = document.createElement("div");
+    heroList.className = "save-build-hero-list";
+    modal.appendChild(heroList);
+    saveBuildHeroListEl = heroList;
+
+    const actions = document.createElement("div");
+    actions.className = "save-build-modal-actions";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "save-build-cancel-btn";
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.addEventListener("click", closeSaveBuildModal);
+    actions.appendChild(cancelBtn);
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "save-build-confirm-btn";
+    confirmBtn.textContent = "Save";
+    confirmBtn.addEventListener("click", confirmSaveBuild);
+    actions.appendChild(confirmBtn);
+
+    modal.appendChild(actions);
+    document.body.appendChild(overlay);
+    saveBuildModalEl = overlay;
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && overlay.classList.contains("is-open")) closeSaveBuildModal();
+    });
   }
 
-  function closeBuildLibraryDropdown() {
-    libraryPickerOpen = false;
-    if (buildLibraryDropdownEl) buildLibraryDropdownEl.classList.remove("is-open");
+  function openSaveBuildModal() {
+    if (!saveBuildModalEl) return;
+    saveBuildModalHero = buildState.hero;
+    saveBuildNameInputEl.value = buildState.title || "";
+    renderSaveBuildHeroOptions();
+    saveBuildModalEl.classList.add("is-open");
+    saveBuildNameInputEl.focus();
+  }
+
+  function closeSaveBuildModal() {
+    if (saveBuildModalEl) saveBuildModalEl.classList.remove("is-open");
+  }
+
+  // Applies the modal's name/hero fields to the canvas, then snapshots it
+  // into the library exactly like the old "+ Save Current Build" action
+  // did — see saveCurrentBuildToLibrary below.
+  function confirmSaveBuild() {
+    buildState.title = saveBuildNameInputEl.value.trim();
+    buildState.hero = saveBuildModalHero;
+    if (buildTitleInputEl) buildTitleInputEl.value = buildState.title;
+    updateHeroPickerDisplay();
+    saveCurrentBuildToLibrary();
+    closeSaveBuildModal();
+  }
+
+  function renderSaveBuildHeroOptions() {
+    if (!saveBuildHeroListEl) return;
+    saveBuildHeroListEl.innerHTML = "";
+    HERO_LIST.forEach((hero) => {
+      const opt = document.createElement("div");
+      opt.className = "build-hero-option" + (saveBuildModalHero === hero.slug ? " is-selected" : "");
+      opt.title = hero.name;
+      const img = document.createElement("img");
+      img.src = "hero_icons/" + hero.file;
+      img.alt = hero.name;
+      opt.appendChild(img);
+      const label = document.createElement("span");
+      label.className = "build-hero-option-name";
+      label.textContent = hero.name;
+      opt.appendChild(label);
+      opt.addEventListener("click", () => {
+        saveBuildModalHero = hero.slug;
+        renderSaveBuildHeroOptions();
+      });
+      saveBuildHeroListEl.appendChild(opt);
+    });
   }
 
   // Snapshots the current canvas (title/hero/sections) into the saved-
@@ -1893,8 +2087,12 @@
     renderBuildSections();
     updateShopItemUsedState();
     clearInvestmentHighlight();
-    closeBuildLibraryDropdown();
     renderSavedBuildsList();
+    // Loading a build implies wanting to see/edit it — without this,
+    // clicking a card while on the Saved Builds tab would load the data
+    // but the (still-hidden) sections/investment-bars columns wouldn't
+    // become visible, reading as if nothing happened.
+    setActiveBuildTab("builds");
   }
 
   // Removes a snapshot from the library only — the live canvas (even if it
@@ -1910,15 +2108,20 @@
     renderSavedBuildsList();
   }
 
+  // Renders one card per saved build into the Saved Builds tab (see
+  // .shop-builds.is-saves-tab in style.css) — name + hero portrait, per
+  // the "new box inside is-saves-tab" ask. Click loads that build; the
+  // small delete control removes it from the library without touching
+  // whatever's currently on the canvas.
   function renderSavedBuildsList() {
-    if (!buildLibraryListEl) return;
-    buildLibraryListEl.innerHTML = "";
+    if (!savedBuildsContainerEl) return;
+    savedBuildsContainerEl.innerHTML = "";
 
     if (!savedBuilds.length) {
       const empty = document.createElement("div");
-      empty.className = "build-library-empty";
+      empty.className = "saved-builds-empty";
       empty.textContent = "No saved builds yet";
-      buildLibraryListEl.appendChild(empty);
+      savedBuildsContainerEl.appendChild(empty);
       return;
     }
 
@@ -1926,36 +2129,36 @@
       .slice()
       .sort((a, b) => b.savedAt - a.savedAt)
       .forEach((saved) => {
-        const row = document.createElement("div");
-        row.className = "build-library-item" + (buildState.savedBuildId === saved.id ? " is-current" : "");
-        row.title = saved.name;
+        const card = document.createElement("div");
+        card.className = "saved-build-card" + (buildState.savedBuildId === saved.id ? " is-current" : "");
+        card.title = saved.name;
 
         const icon = document.createElement("div");
-        icon.className = "build-library-item-icon";
+        icon.className = "saved-build-card-icon";
         const hero = saved.hero ? HERO_LIST.find((h) => h.slug === saved.hero) : null;
         if (hero) {
           icon.style.backgroundImage = "url('hero_icons/" + hero.file + "')";
         } else {
           icon.classList.add("is-empty");
         }
-        row.appendChild(icon);
+        card.appendChild(icon);
 
         const name = document.createElement("span");
-        name.className = "build-library-item-name";
+        name.className = "saved-build-card-name";
         name.textContent = saved.name;
-        row.appendChild(name);
+        card.appendChild(name);
 
         const deleteBtn = document.createElement("div");
-        deleteBtn.className = "build-library-item-delete";
+        deleteBtn.className = "saved-build-card-delete";
         deleteBtn.title = "Delete";
         deleteBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           deleteBuildFromLibrary(saved.id);
         });
-        row.appendChild(deleteBtn);
+        card.appendChild(deleteBtn);
 
-        row.addEventListener("click", () => loadBuildFromLibrary(saved.id));
-        buildLibraryListEl.appendChild(row);
+        card.addEventListener("click", () => loadBuildFromLibrary(saved.id));
+        savedBuildsContainerEl.appendChild(card);
       });
   }
 
@@ -2496,6 +2699,7 @@
       const h = entries[0].contentRect.height;
       if (h > 0) {
         document.documentElement.style.setProperty("--tooltip-display-h", h + "px");
+        updateTooltipScrollSpacer();
       }
     });
     ro.observe(shopEl);
@@ -2723,6 +2927,7 @@
   buildSearchPanel();
   buildShopBuildsUI();
   buildBuildTabsUI();
+  buildSaveBuildModal();
   syncTooltipDisplayHeight();
   syncShopBuildsAlignment();
   syncBuildSectionsScale();

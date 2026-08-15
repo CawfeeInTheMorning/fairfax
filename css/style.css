@@ -36,6 +36,25 @@
   --tooltip-card-height: auto;
   --tooltip-card-y-offset: 0px;
 
+  /* How much of .tooltip-display's own scrollable range, at the very top
+     and bottom, is reserved as plain background rather than content —
+     i.e. how far a long tooltip's scroll "runs out" before reaching
+     either edge. Two DIFFERENT mechanisms create these (see .tooltip-card
+     and .tooltip-scroll-bottom-spacer in the tooltip section below for
+     the full reasoning): the top gap is .tooltip-card's own `top` offset,
+     the bottom gap is a JS-positioned spacer element. Neither lives on
+     .tooltip-card's own padding/content, nor on .tooltip-display's own
+     padding — .tooltip-card is scaled via transform along with the rest
+     of its native-pixel design, so padding living on it shrinks
+     proportionally at smaller panel sizes (measured: a 40px native gap
+     fell to ~20px rendered at a smaller viewport); and Chrome silently
+     ignores a scroll container's own TRAILING padding for scroll-range
+     purposes, though it does honor leading padding (measured directly —
+     both were tried and abandoned here). Real rendered pixels (NOT
+     native pre-scale pixels, unlike --tooltip-card-height above). */
+  --tooltip-scroll-crop-top: 40px;
+  --tooltip-scroll-crop-bottom: 40px;
+
   /* .build-sections-container's "100% scale" reference width — capped at
      roughly 2 sections of 6 items each side by side (2 * 528px, matching
      app.js's widthForColumns(6), + the 32px gap between them), leaving
@@ -204,7 +223,23 @@ body {
      background-size: cover never has a mismatched ratio to crop.
      overflow-y:auto below handles a longer item tooltip + notes panel
      that overflows this height via scrolling, rather than the old
-     overflow:hidden hard-clipping it. */
+     overflow:hidden hard-clipping it.
+
+     The top/bottom scroll-end gaps (--tooltip-scroll-crop-top/bottom)
+     are NOT this element's own padding — Chrome only honors a scroll
+     container's own LEADING padding for scroll-range purposes, not its
+     TRAILING padding (confirmed by direct measurement: a padding-top
+     here correctly reserves real scrollable space, an equal
+     padding-bottom does not, silently reserving none). The top gap is
+     instead .tooltip-card's own `top` offset below (an absolute
+     offset from THIS element's padding edge, unaffected by that card's
+     own transform scale, so it's already a correct real-px gap with no
+     help needed here). The bottom gap is instead a plain
+     .tooltip-scroll-bottom-spacer sibling of .tooltip-card, JS-positioned
+     (see updateTooltipScrollSpacer in app.js) right after the card's
+     real rendered bottom edge on every hover/resize — ordinary
+     non-transformed content, so its own height always counts fully
+     toward this element's scrollable range. */
   position: relative;
   flex-shrink: 0;
   margin-left: 6px;
@@ -218,6 +253,28 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   container-type: inline-size;
+  /* Firefox equivalent of the ::-webkit-scrollbar rules below — thumb
+     color then track color, no separate width control (scrollbar-width
+     only accepts auto/thin/none). */
+  scrollbar-color: #ffffff #d8c9a3;
+}
+
+/* Parchment-colored track, white thumb — 16px total (a 12px custom-
+   scrollbar baseline + the requested 4px increase). */
+.tooltip-display::-webkit-scrollbar {
+  width: 16px;
+}
+
+.tooltip-display::-webkit-scrollbar-track {
+  background-color: #d8c9a3;
+  border-radius: 8px;
+}
+
+.tooltip-display::-webkit-scrollbar-thumb {
+  background-color: #ffffff;
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 8px;
 }
 
 /* Purely a positioning anchor for .build-tabs (position:absolute, pulled
@@ -323,7 +380,11 @@ body {
   background-image: url("../frontend_assets/shop_bg_saves.png");
 }
 
-.shop-builds.is-saves-tab .shop-builds-inner {
+/* Only the sections/investment-bars columns hide — the header (title,
+   hero picker, Save Build) stays visible/usable on both tabs, same as
+   .build-add-section-viewport's role as a page-spanning header above
+   both. */
+.shop-builds.is-saves-tab .shop-builds-columns {
   display: none;
 }
 
@@ -988,6 +1049,13 @@ body {
   cursor: pointer;
 }
 
+/* Persistent selection highlight — only meaningful where the option list
+   stays open after picking (the save-build modal's hero list), unlike
+   the hero-picker dropdown, which just closes on click. */
+.build-hero-option.is-selected {
+  background-color: rgba(0, 255, 245, 0.12);
+}
+
 .build-hero-option:hover {
   background-color: rgba(255, 255, 255, 0.08);
 }
@@ -1019,14 +1087,9 @@ body {
   text-overflow: ellipsis;
 }
 
-/* ---------- saved-builds library ---------- */
+/* ---------- Save Build button + confirm modal ---------- */
 
-.build-library-wrap {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.build-library-btn {
+.build-save-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1049,119 +1112,209 @@ body {
   font-size: 15px;
   color: #f2ead9;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.build-library-btn:hover {
+.build-save-btn:hover {
   filter: brightness(1.3);
 }
 
-.build-library-dropdown {
+.save-build-modal-overlay {
   display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.save-build-modal-overlay.is-open {
+  display: flex;
+}
+
+.save-build-modal {
+  display: flex;
   flex-direction: column;
-  width: 240px;
-  padding: 6px;
+  width: 320px;
+  max-height: 80vh;
+  padding: 20px;
+  box-sizing: border-box;
   background-color: rgb(15 13 19);
   border: 1px solid rgba(240, 236, 226, 0.15);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
-.build-library-dropdown.is-open {
+.save-build-modal-title {
+  margin-bottom: 10px;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #f2ead9;
+}
+
+.save-build-modal-label {
+  margin-top: 10px;
+  margin-bottom: 4px;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: #f2ead9;
+  opacity: 0.6;
+}
+
+.save-build-name-input {
+  height: 36px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #f2ead9;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(240, 236, 226, 0.15);
+  border-radius: 4px;
+}
+
+.save-build-name-input:focus {
+  outline: 1px solid rgba(0, 255, 245, 0.5);
+  outline-offset: 1px;
+}
+
+.save-build-hero-list {
   display: flex;
-  z-index: 20;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 
-.build-library-save-btn {
-  padding: 8px;
-  border-radius: 4px;
-  cursor: pointer;
+.save-build-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.save-build-cancel-btn,
+.save-build-confirm-btn {
+  padding: 8px 18px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: #00fff5;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-.build-library-save-btn:hover {
+.save-build-cancel-btn {
   background-color: rgba(255, 255, 255, 0.08);
+  color: #f2ead9;
 }
 
-.build-library-divider {
-  height: 1px;
-  margin: 4px 0;
-  background-color: rgba(240, 236, 226, 0.15);
+.save-build-cancel-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
-.build-library-list {
+.save-build-confirm-btn {
+  background-color: #00fff5;
+  color: #0b0a0d;
+}
+
+.save-build-confirm-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* ---------- saved-builds tab (Saved Builds cards) ---------- */
+
+.saved-builds-viewport {
+  display: none;
+  width: 100%;
+}
+
+.shop-builds.is-saves-tab .saved-builds-viewport {
+  display: block;
+}
+
+.saved-builds-container {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-height: 280px;
-  overflow-y: auto;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.build-library-empty {
-  padding: 8px;
+.saved-builds-empty {
+  padding: 24px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: #f2ead9;
   opacity: 0.4;
   text-align: center;
 }
 
-.build-library-item {
+.saved-build-card {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 6px;
-  border-radius: 4px;
+  width: 120px;
+  padding: 16px 12px;
+  box-sizing: border-box;
+  background-color: rgba(23, 21, 27, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
   cursor: pointer;
 }
 
-.build-library-item:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+.saved-build-card:hover {
+  border-color: #00fff5;
 }
 
-.build-library-item.is-current {
-  background-color: rgba(0, 255, 245, 0.1);
+.saved-build-card.is-current {
+  border-color: rgba(0, 255, 245, 0.6);
 }
 
-.build-library-item-icon {
-  width: 28px;
-  height: 28px;
+.saved-build-card-icon {
+  width: 64px;
+  height: 64px;
   flex-shrink: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   background-color: rgb(15 13 19);
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
 }
 
-.build-library-item-icon.is-empty {
+.saved-build-card-icon.is-empty {
   background-image: url("../frontend_assets/icon_person.svg");
-  background-size: 14px 14px;
+  background-size: 24px 24px;
+  background-position: center;
+  background-repeat: no-repeat;
   filter: invert(1);
   opacity: 0.5;
 }
 
-.build-library-item-name {
-  flex: 1;
-  min-width: 0;
+.saved-build-card-name {
+  max-width: 100%;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 13px;
   color: #f2ead9;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.build-library-item-delete {
+.saved-build-card-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
   width: 18px;
   height: 18px;
-  flex-shrink: 0;
   border-radius: 3px;
   background-image: url("../frontend_assets/icon_close.svg");
   background-size: 10px 10px;
@@ -1171,7 +1324,7 @@ body {
   opacity: 0.5;
 }
 
-.build-library-item-delete:hover {
+.saved-build-card-delete:hover {
   opacity: 1;
   background-color: rgba(255, 255, 255, 0.15);
 }
@@ -1779,6 +1932,80 @@ body {
   display: flex;
 }
 
+/* One checkbox per distinct innate stat (see getAllInnateStatNames in
+   app.js) — a plain, fluid flex-wrap list rather than the scaled 1076px
+   canvas .search-results/.search-content-scaled use below, same as the
+   search input itself above it. */
+.search-filters-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+  gap: 8px 18px;
+  max-width: 760px;
+  max-height: 130px;
+  overflow-y: auto;
+  margin: 14px auto 0;
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+
+.stat-filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Visually hidden but still focusable/toggleable — .stat-filter-box is
+   the actual visible control, driven by the :checked state below. */
+.stat-filter-checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stat-filter-box {
+  position: relative;
+  width: 28px;
+  height: 22px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  background-image: url("../frontend_assets/shop_header_small.png");
+  background-size: 100% 100%;
+  border-radius: 3px;
+  border: 2px solid transparent;
+  transition: transform 0.1s ease;
+}
+
+/* Same hover treatment as a shop item (.mod-box:hover) — lift + gentle
+   sway, reusing that same @keyframes selected-rotate rather than
+   defining a near-identical one just for this. */
+.stat-filter-chip:hover .stat-filter-box {
+  transform: translateY(-2px);
+  animation: selected-rotate 3.6s ease-in-out infinite;
+}
+
+.stat-filter-checkbox:checked ~ .stat-filter-box {
+  border-color: #00fff5;
+  box-shadow: inset 0 0 0 2px rgba(0, 255, 245, 0.35);
+}
+
+.stat-filter-checkbox:focus-visible ~ .stat-filter-box {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 2px;
+}
+
+.stat-filter-name {
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #f2ead9;
+  white-space: nowrap;
+}
+
 .search-results {
   position: relative;
   flex: 1;
@@ -2155,18 +2382,50 @@ body {
      .tooltip-display) shrinks below native size. */
   display: none;
   position: absolute;
-  top: 0;
+  /* This offset (not .tooltip-display's padding, which this element
+     doesn't have) is what creates the actual --tooltip-scroll-crop-top
+     gap — it's resolved relative to .tooltip-display's own padding edge
+     BEFORE this card's transform scale is applied, and the transform's
+     top-left origin (below) keeps that resolved position fixed on
+     screen afterward, so it stays a correct real (not scaled-down) px
+     gap with nothing extra needed on .tooltip-display itself. See the
+     .tooltip-scroll-bottom-spacer rule below for the bottom gap, which
+     can't use this same trick (there's no equivalent "offset from the
+     far edge" for an auto-height box). */
+  top: var(--tooltip-scroll-crop-top);
   left: 0;
   width: var(--tooltip-display-native-w);
-  /* Bottom padding gives the scroll range 40px of extra room, roughly
-     matching .tooltip-display's own 40px clip-path crop — otherwise the
-     very last bit of a long tooltip/notes list would land exactly in
-     that cropped band and never be reachable even at max scroll. */
-  padding: 42px 36px 40px 44px;
+  /* Uniform 40px on every side (not .tooltip-display's own background,
+     which is untouched — just this card's own content box) so text
+     never sits flush against the card's edge. Unrelated to the
+     --tooltip-scroll-crop-* gap (see the `top` offset above and the
+     .tooltip-scroll-bottom-spacer rule below) — this stays a fixed
+     native-pixel value like the rest of the card's scaled design. */
+  padding: 40px;
+  border-radius: 8px;
   box-sizing: border-box;
+  overflow: hidden;
   transform: scale(calc(100cqw / var(--tooltip-display-native-w)));
   transform-origin: top left;
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+}
+
+/* Reserves --tooltip-scroll-crop-bottom's worth of real (non-transformed,
+   non-scaled) scrollable space right after .tooltip-card's actual
+   rendered bottom edge — a plain sibling rather than .tooltip-card's own
+   padding/margin so the reserved amount doesn't shrink at smaller panel
+   sizes the way anything living inside the card's own transform does.
+   `top` is set inline by updateTooltipScrollSpacer() in app.js (there's
+   no pure-CSS way to know the card's real rendered height, since it's
+   both auto/content-driven AND scaled). Ordinary non-transformed
+   content, so unlike .tooltip-display's own (unreliable) trailing
+   padding, this height always counts fully toward the scrollable range. */
+.tooltip-scroll-bottom-spacer {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: var(--tooltip-scroll-crop-bottom);
+  pointer-events: none;
 }
 
 .tooltip-card.visible {
@@ -2371,7 +2630,7 @@ body {
   align-items: center;
   gap: 4px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 18px;
   color: #ffffff;
 }
 
