@@ -117,7 +117,6 @@
 
   let searchInputEl = null;
   let tooltipCard = null;
-  let tooltipScrollSpacerEl = null;
   let selectedCard = null;
   let activeCategory = "weapon";
   let buildState = null;
@@ -558,34 +557,7 @@
 
     tooltipDisplayEl.appendChild(card);
 
-    tooltipScrollSpacerEl = document.createElement("div");
-    tooltipScrollSpacerEl.className = "tooltip-scroll-bottom-spacer";
-    tooltipDisplayEl.appendChild(tooltipScrollSpacerEl);
-
     tooltipCard = { root: card, top, name, costValue, body, desc, notes, notesList };
-  }
-
-  // Positions .tooltip-scroll-bottom-spacer right after the tooltip
-  // card's actual rendered bottom edge, in .tooltip-display's own real
-  // (non-transformed) coordinate space — offsetTop/offsetHeight report
-  // the card's native pre-scale box, so offsetHeight is multiplied by
-  // the card's own current transform scale (read straight off its
-  // computed matrix) to get that edge's real on-screen distance from
-  // .tooltip-display's top. Needed because the card's rendered height
-  // depends on its (variable, per-item) content, so there's no way to
-  // express this spacer's position as a fixed CSS formula. Call after
-  // any change to the card's content/visibility, and on resize (the
-  // scale itself changes as the shop panel resizes).
-  function updateTooltipScrollSpacer() {
-    if (!tooltipScrollSpacerEl || !tooltipCard || !tooltipCard.root.classList.contains("visible")) return;
-    const transform = getComputedStyle(tooltipCard.root).transform;
-    let scale = 1;
-    if (transform && transform !== "none") {
-      const match = /^matrix\(([^,]+),/.exec(transform);
-      if (match) scale = parseFloat(match[1]) || 1;
-    }
-    const realBottom = tooltipCard.root.offsetTop + tooltipCard.root.offsetHeight * scale;
-    tooltipScrollSpacerEl.style.top = realBottom + "px";
   }
 
   // Clicking an "Upgrades To/From" link: switch to that item's category if
@@ -624,7 +596,6 @@
     }
 
     tooltipCard.root.classList.add("visible");
-    updateTooltipScrollSpacer();
   }
 
   function hideTooltipDisplay() {
@@ -2699,7 +2670,6 @@
       const h = entries[0].contentRect.height;
       if (h > 0) {
         document.documentElement.style.setProperty("--tooltip-display-h", h + "px");
-        updateTooltipScrollSpacer();
       }
     });
     ro.observe(shopEl);

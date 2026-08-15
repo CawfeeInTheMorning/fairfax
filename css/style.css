@@ -36,25 +36,6 @@
   --tooltip-card-height: auto;
   --tooltip-card-y-offset: 0px;
 
-  /* How much of .tooltip-display's own scrollable range, at the very top
-     and bottom, is reserved as plain background rather than content —
-     i.e. how far a long tooltip's scroll "runs out" before reaching
-     either edge. Two DIFFERENT mechanisms create these (see .tooltip-card
-     and .tooltip-scroll-bottom-spacer in the tooltip section below for
-     the full reasoning): the top gap is .tooltip-card's own `top` offset,
-     the bottom gap is a JS-positioned spacer element. Neither lives on
-     .tooltip-card's own padding/content, nor on .tooltip-display's own
-     padding — .tooltip-card is scaled via transform along with the rest
-     of its native-pixel design, so padding living on it shrinks
-     proportionally at smaller panel sizes (measured: a 40px native gap
-     fell to ~20px rendered at a smaller viewport); and Chrome silently
-     ignores a scroll container's own TRAILING padding for scroll-range
-     purposes, though it does honor leading padding (measured directly —
-     both were tried and abandoned here). Real rendered pixels (NOT
-     native pre-scale pixels, unlike --tooltip-card-height above). */
-  --tooltip-scroll-crop-top: 40px;
-  --tooltip-scroll-crop-bottom: 40px;
-
   /* .build-sections-container's "100% scale" reference width — capped at
      roughly 2 sections of 6 items each side by side (2 * 528px, matching
      app.js's widthForColumns(6), + the 32px gap between them), leaving
@@ -223,23 +204,7 @@ body {
      background-size: cover never has a mismatched ratio to crop.
      overflow-y:auto below handles a longer item tooltip + notes panel
      that overflows this height via scrolling, rather than the old
-     overflow:hidden hard-clipping it.
-
-     The top/bottom scroll-end gaps (--tooltip-scroll-crop-top/bottom)
-     are NOT this element's own padding — Chrome only honors a scroll
-     container's own LEADING padding for scroll-range purposes, not its
-     TRAILING padding (confirmed by direct measurement: a padding-top
-     here correctly reserves real scrollable space, an equal
-     padding-bottom does not, silently reserving none). The top gap is
-     instead .tooltip-card's own `top` offset below (an absolute
-     offset from THIS element's padding edge, unaffected by that card's
-     own transform scale, so it's already a correct real-px gap with no
-     help needed here). The bottom gap is instead a plain
-     .tooltip-scroll-bottom-spacer sibling of .tooltip-card, JS-positioned
-     (see updateTooltipScrollSpacer in app.js) right after the card's
-     real rendered bottom edge on every hover/resize — ordinary
-     non-transformed content, so its own height always counts fully
-     toward this element's scrollable range. */
+     overflow:hidden hard-clipping it. */
   position: relative;
   flex-shrink: 0;
   margin-left: 6px;
@@ -2382,50 +2347,18 @@ body {
      .tooltip-display) shrinks below native size. */
   display: none;
   position: absolute;
-  /* This offset (not .tooltip-display's padding, which this element
-     doesn't have) is what creates the actual --tooltip-scroll-crop-top
-     gap — it's resolved relative to .tooltip-display's own padding edge
-     BEFORE this card's transform scale is applied, and the transform's
-     top-left origin (below) keeps that resolved position fixed on
-     screen afterward, so it stays a correct real (not scaled-down) px
-     gap with nothing extra needed on .tooltip-display itself. See the
-     .tooltip-scroll-bottom-spacer rule below for the bottom gap, which
-     can't use this same trick (there's no equivalent "offset from the
-     far edge" for an auto-height box). */
-  top: var(--tooltip-scroll-crop-top);
+  top: 0;
   left: 0;
   width: var(--tooltip-display-native-w);
-  /* Uniform 40px on every side (not .tooltip-display's own background,
-     which is untouched — just this card's own content box) so text
-     never sits flush against the card's edge. Unrelated to the
-     --tooltip-scroll-crop-* gap (see the `top` offset above and the
-     .tooltip-scroll-bottom-spacer rule below) — this stays a fixed
-     native-pixel value like the rest of the card's scaled design. */
-  padding: 40px;
-  border-radius: 8px;
+  /* Bottom padding gives the scroll range 40px of extra room, roughly
+     matching .tooltip-display's own 40px clip-path crop — otherwise the
+     very last bit of a long tooltip/notes list would land exactly in
+     that cropped band and never be reachable even at max scroll. */
+  padding: 42px 36px 40px 44px;
   box-sizing: border-box;
-  overflow: hidden;
   transform: scale(calc(100cqw / var(--tooltip-display-native-w)));
   transform-origin: top left;
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
-}
-
-/* Reserves --tooltip-scroll-crop-bottom's worth of real (non-transformed,
-   non-scaled) scrollable space right after .tooltip-card's actual
-   rendered bottom edge — a plain sibling rather than .tooltip-card's own
-   padding/margin so the reserved amount doesn't shrink at smaller panel
-   sizes the way anything living inside the card's own transform does.
-   `top` is set inline by updateTooltipScrollSpacer() in app.js (there's
-   no pure-CSS way to know the card's real rendered height, since it's
-   both auto/content-driven AND scaled). Ordinary non-transformed
-   content, so unlike .tooltip-display's own (unreliable) trailing
-   padding, this height always counts fully toward the scrollable range. */
-.tooltip-scroll-bottom-spacer {
-  position: absolute;
-  left: 0;
-  width: 1px;
-  height: var(--tooltip-scroll-crop-bottom);
-  pointer-events: none;
 }
 
 .tooltip-card.visible {
