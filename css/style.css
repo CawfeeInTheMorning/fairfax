@@ -36,12 +36,65 @@
   --tooltip-card-height: auto;
   --tooltip-card-y-offset: 0px;
 
+  /* Free knobs for where .tooltip-card starts getting visually clipped —
+     i.e. how far (from .tooltip-display's own top/bottom) the actual
+     scroll viewport is inset. No-op defaults (viewport fills the display
+     exactly). Native (pre-scale) pixels — same space as
+     --tooltip-card-height/-y-offset above — converted to real on-screen
+     px via .tooltip-scroll-viewport's own top/bottom (below) using the
+     exact same scale ratio .tooltip-card's transform uses, so the crop
+     line stays visually locked to the card's own (also-scaled) content
+     at any panel/window size instead of drifting apart the way mixing
+     native and real px did in an earlier attempt at this. */
+  --tooltip-crop-top: 60px;
+  --tooltip-crop-bottom: 38px;
+
   /* .build-sections-container's "100% scale" reference width — capped at
      roughly 2 sections of 6 items each side by side (2 * 528px, matching
      app.js's widthForColumns(6), + the 32px gap between them), leaving
      .shop-builds-right room alongside it instead of the sections column
      claiming all available width. */
   --build-sections-native-w: 1088px;
+
+  /* .shop-builds' own native/design width — --panel-w + the 6px gap +
+     .tooltip-display's native width, i.e. what #shop-builds' actual
+     (JS-synced, see --shop-builds-w below) width would be if the shop
+     panels were rendering at their own native, unshrunk size. */
+  --shop-builds-native-w: calc(var(--panel-w) + 6px + var(--tooltip-display-native-w));
+
+  /* #shop-builds' own actual current rendered width — kept in sync by a
+     ResizeObserver in app.js (syncShopBuildsAlignment), same pattern as
+     --tooltip-display-h. Falls back to --shop-builds-native-w (i.e. no
+     scaling) until JS measures it. .build-tabs uses the ratio of this to
+     --shop-builds-native-w as its own scale factor, so it visibly scales
+     in step with #shop-builds instead of staying pinned at native size
+     while the panel beside it scales independently. */
+  --shop-builds-w: var(--shop-builds-native-w);
+
+  /* .shop-builds-inner's own content-box width (--shop-builds-native-w
+     minus its 24px+24px left/right padding). This is the SAME ratio
+     .shop-builds' own background art scales by (background-size: 100%
+     auto is keyed to .shop-builds' actual width) — .build-actions-left/
+     -right below use it as their scale reference (100cqw / this) instead
+     of their own small content width, specifically so the row's controls
+     visibly scale together with that background rather than drifting out
+     of proportion with it (an earlier attempt scaled each cluster against
+     its own tiny native width instead, which looked static/mismatched
+     against the background at most realistic window sizes). */
+  --shop-builds-content-native-w: calc(var(--shop-builds-native-w) - 48px);
+
+  /* .build-actions-left/-search/-right's own native content width/height
+     (Save Build + gap + New Build + gap + the title input; the search
+     input alone; Add Section + gap + Clear) — used to size each
+     cluster's viewport/inner content, NOT as the scale divisor (see
+     --shop-builds-content-native-w above for that). Separate units
+     rather than one for the whole row, since the row spans past
+     .shop-builds-right (uncapped flex-grow width, no single native width
+     of its own) — see .build-actions-left-viewport/.build-actions-
+     search-viewport/.build-actions-right-viewport below. */
+  --build-actions-left-native-w: 604px;
+  --build-actions-search-native-w: 304px;
+  --build-actions-right-native-w: 258px;
 
   /* .investment-bars' "100% scale" reference width — its natural
      content width (souls column + 3 pill+label columns + gaps/padding/
@@ -202,9 +255,12 @@ body {
      800:1618 ratio — same trick .shop-panel uses via aspect-ratio — so
      the box always matches the image's shape exactly and
      background-size: cover never has a mismatched ratio to crop.
-     overflow-y:auto below handles a longer item tooltip + notes panel
-     that overflows this height via scrolling, rather than the old
-     overflow:hidden hard-clipping it. */
+
+     This element is just the decorative background frame — it no longer
+     scrolls itself (see .tooltip-scroll-viewport below, an inset child
+     that does), so its own edges aren't necessarily where content gets
+     visually clipped. overflow:hidden here just keeps the background art
+     clipped to the rounded corners. */
   position: relative;
   flex-shrink: 0;
   margin-left: 6px;
@@ -215,35 +271,52 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 6px;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+/* The actual scrolling/clipping element — inset from .tooltip-display's
+   own top/bottom by --tooltip-crop-top/-bottom (see :root), converted
+   from their native-pixel values to real on-screen px via the exact same
+   ratio .tooltip-card's own transform uses (100cqw / the display's
+   native width) — so this crop line scales together with the card's
+   content at any panel size instead of the two drifting apart, which is
+   what went wrong the first time this was tried (that version mixed
+   real, unscaled px here with native, scaled px on the card). */
+.tooltip-scroll-viewport {
+  position: absolute;
+  top: calc(var(--tooltip-crop-top) * (100cqw / var(--tooltip-display-native-w)));
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tooltip-crop-bottom) * (100cqw / var(--tooltip-display-native-w)));
   overflow-x: hidden;
   overflow-y: auto;
-  container-type: inline-size;
   /* Firefox equivalent of the ::-webkit-scrollbar rules below — thumb
      color then track color, no separate width control (scrollbar-width
      only accepts auto/thin/none). */
-  scrollbar-color: #ffffff #d8c9a3;
+  scrollbar-color: #ffffff rgb(15 13 19);
 }
 
-/* Parchment-colored track, white thumb — 16px total (a 12px custom-
-   scrollbar baseline + the requested 4px increase). */
-.tooltip-display::-webkit-scrollbar {
-  width: 16px;
+/* Dark track, white thumb — 20px total (widened from the previous
+   16px). */
+.tooltip-scroll-viewport::-webkit-scrollbar {
+  width: 20px;
 }
 
-.tooltip-display::-webkit-scrollbar-track {
-  background-color: #d8c9a3;
+.tooltip-scroll-viewport::-webkit-scrollbar-track {
+  background-color: rgb(15 13 19);
   border-radius: 8px;
 }
 
-.tooltip-display::-webkit-scrollbar-thumb {
+.tooltip-scroll-viewport::-webkit-scrollbar-thumb {
   background-color: #ffffff;
   background-clip: padding-box;
   border: 3px solid transparent;
   border-radius: 8px;
 }
 
-/* Purely a positioning anchor for .build-tabs (position:absolute, pulled
-   out to the left) — .shop-builds itself has overflow:hidden (its
+/* Purely a positioning anchor for .build-tabs-viewport (position:absolute,
+   pulled out to the left) — .shop-builds itself has overflow:hidden (its
    max-height backstop), which would clip the tabs if they were placed
    inside it instead of alongside it in a wrapper without that overflow
    rule. Has no size/layout properties of its own, so it doesn't affect
@@ -252,17 +325,33 @@ body {
   position: relative;
 }
 
-/* Same style/animation as .category-tabs — a vertical stack of 72x72
-   tabs, positioned immediately to the left of .shop-builds the same way
+/* Same relationship as .category-tabs-viewport/.category-tabs, just
+   scaled by #shop-builds' own ratio (--shop-builds-w over
+   --shop-builds-native-w — see :root) instead of #shop-panels', since
+   this stack sits beside .shop-builds, not the shop panels. 294px is
+   this stack's own constant native height (216px for whichever of the 2
+   build tabs is active + 72px for the other + the 6px gap between them
+   — see .build-tab.active below), same "always exactly one is active,
+   so this never actually varies" reasoning as .category-tabs-viewport.
+   Positioned pulled out to the left of #shop-builds the same way
    .category-tabs sits left of #shop-panels. */
-.build-tabs {
+.build-tabs-viewport {
   position: absolute;
   top: 0;
   right: 100%;
+  width: calc(72px * (var(--shop-builds-w) / var(--shop-builds-native-w)));
+  height: calc(294px * (var(--shop-builds-w) / var(--shop-builds-native-w)));
+}
+
+.build-tabs {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transform: translateX(4px);
+  transform: scale(calc(var(--shop-builds-w) / var(--shop-builds-native-w))) translateX(4px);
+  transform-origin: top left;
 }
 
 .build-tab {
@@ -345,8 +434,10 @@ body {
   background-image: url("../frontend_assets/shop_bg_saves.png");
 }
 
-/* Only the sections/investment-bars columns hide — the header (title,
-   hero picker, Save Build) stays visible/usable on both tabs, same as
+/* Only the sections/investment-bars columns hide — .build-section-actions-row
+   itself stays visible on both tabs (its Save Build/search box slot
+   swaps which one is shown instead — see .build-actions-left-viewport/
+   .build-actions-search-viewport above), same as
    .build-add-section-viewport's role as a page-spanning header above
    both. */
 .shop-builds.is-saves-tab .shop-builds-columns {
@@ -373,6 +464,14 @@ body {
      .shop-builds-left/.shop-builds-right's role for the other scaled
      sections (.build-sections-container, .investment-bars-content). */
   container-type: inline-size;
+}
+
+/* Toggled from app.js (setActiveBuildTab) — the investment graphs don't
+   apply to browsing saved builds, and .shop-graphs is a sibling of
+   .shop-builds-wrap rather than a descendant of #shop-builds, so the
+   .shop-builds.is-saves-tab CSS toggle used elsewhere can't reach it. */
+.shop-graphs.is-hidden {
+  display: none;
 }
 
 /* ---------- build timeline chart ---------- */
@@ -426,6 +525,15 @@ body {
   opacity: 0.5;
 }
 
+/* 4,800 is the game's own "milestone" investment threshold (see
+   GRAPH_AXIS_TIERS/items-data.js in app.js) — full opacity plus the same
+   yellow as .graph-bar-rect.is-weapon below, so this one tier reads as
+   the spike that actually matters instead of blending into the rest. */
+.graph-axis-label.is-milestone {
+  color: #e5b30b;
+  opacity: 1;
+}
+
 .graph-plot {
   position: relative;
   flex: 1;
@@ -438,6 +546,12 @@ body {
   right: 0;
   height: 1px;
   background-color: rgba(240, 236, 226, 0.15);
+}
+
+/* Same yellow as .graph-axis-label.is-milestone above, for the same
+   4,800-is-the-real-milestone reason. */
+.graph-gridline.is-milestone {
+  background-color: #e5b30b;
 }
 
 .graph-bars {
@@ -487,28 +601,16 @@ body {
   background-color: #b766de;
 }
 
-.graph-empty-message {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  text-align: center;
-  font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 14px;
-  color: #f2ead9;
-  opacity: 0.4;
-}
-
 .shop-builds-inner {
   display: flex;
-  /* .build-add-section-viewport (the Add Section/Clear/My Builds/hero/
-     title header) is now a full-width header stacked above the left+right
-     columns, rather than sitting inside .shop-builds-left alone — see
-     .shop-builds-columns below for the row layout that used to live
-     directly on this element. Kept at the same 20px gap .shop-builds-left
-     used to use between the header and the sections below it, so
-     .build-sections-container's vertical offset is just this padding-top
-     + header height + that 20px gap. */
+  /* .build-add-section-viewport (containing .build-section-actions-row —
+     Save Build/search, Add Section, Clear) is now a full-width header
+     stacked above the left+right columns, rather than sitting inside
+     .shop-builds-left alone — see .shop-builds-columns below for the row
+     layout that used to live directly on this element. Kept at the same
+     20px gap .shop-builds-left used to use between the header and the
+     sections below it, so .build-sections-container's vertical offset is
+     just this padding-top + header height + that 20px gap. */
   flex-direction: column;
   gap: 20px;
   padding: 8px 24px 24px;
@@ -516,12 +618,12 @@ body {
   box-sizing: border-box;
 }
 
-/* Add Section/Clear/My Builds/hero/title live in a header that spans
-   the FULL shop-builds-inner width (both columns), so this needs its own
-   elevated stacking context — otherwise its dropdowns (hero picker, My
-   Builds) would paint BEHIND .shop-builds-columns below, which comes
-   later in DOM order and would otherwise win the default stacking order
-   since neither element has a transform of its own anymore to trigger an
+/* Save Build/search/Add Section/Clear live in a header that spans the
+   FULL shop-builds-inner width (both columns), so this needs its own
+   elevated stacking context — otherwise the Save Build modal it opens
+   would paint BEHIND .shop-builds-columns below, which comes later in
+   DOM order and would otherwise win the default stacking order since
+   neither element has a transform of its own anymore to trigger an
    implicit stacking context. */
 .build-add-section-viewport {
   position: relative;
@@ -606,7 +708,7 @@ body {
 
 .investment-bars-title {
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 1px;
   color: #f2ead9;
@@ -797,24 +899,111 @@ body {
   opacity: 1;
 }
 
-/* Reserves layout space for .build-section-actions-row, which is
-   positioned out of flow below — width/height set from JS
-   (updateAddSectionBtnViewport) to the row's actual post-scale rendered
-   size, same relationship as .investment-bars-viewport. */
-/* A fluid, full-width header row (not the fixed-native-size, cqw-scaled
-   block it used to be) — it now spans .shop-builds-inner's full width,
-   including .shop-builds-right, which doesn't have a fixed native width
-   of its own to scale against (it flex-grows to fill whatever row space
-   is left, uncapped), so the old "scale like .build-sections-container"
-   technique no longer has a single width to be a percentage of. Controls
-   stay at their own natural CSS size regardless of viewport width instead
-   — same "chrome doesn't scale, only content does" idea as
-   .investment-bars-header alongside .investment-bars-content. */
+/* A fluid, full-width header row spanning .shop-builds-inner's full
+   width, including .shop-builds-right — which has no fixed native width
+   of its own (it flex-grows to fill whatever row space is left,
+   uncapped), so there's no single width the WHOLE row could scale
+   against as one rigid unit the way .build-sections-container does.
+   Instead each cluster (Save Build; the saved-builds search box; Add
+   Section+Clear) is its own small scaled unit (see .build-actions-left/
+   -search/-right-viewport below) that scales by the SAME ratio
+   .shop-builds' own background art scales by — see
+   --shop-builds-content-native-w in :root — so the controls visibly
+   track the background instead of just sitting at native size while it
+   scales independently. container-type:inline-size here is what makes
+   this row's own current width available (as 100cqw) to those viewports
+   below, regardless of how .shop-builds-right's width varies. Shared
+   between both tabs (see .shop-builds.is-saves-tab below) — Save
+   Build/the search box occupy the same left slot and are never both
+   visible at once, so whichever is display:none just collapses out of
+   this row's flex layout. */
 .build-section-actions-row {
   display: flex;
   align-items: center;
-  gap: 12px;
   width: 100%;
+  container-type: inline-size;
+}
+
+/* Each cluster's viewport: a normal flex item (so they still lay out
+   left/right within the fluid row, same as before), sized directly from
+   --shop-builds-content-native-w's scale ratio rather than from its own
+   flex-shrink amount — so it grows and shrinks together with
+   .shop-builds' background as that ratio changes, not just when this row
+   specifically runs out of space. */
+.build-actions-left-viewport {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(var(--build-actions-left-native-w) * (100cqw / var(--shop-builds-content-native-w)));
+  height: calc(41px * (100cqw / var(--shop-builds-content-native-w)));
+}
+
+/* The actual controls, built at native size and scaled down (or up) as
+   one rigid unit to match .build-actions-left-viewport's (above) own
+   size — same technique as .build-sections-container, just scaled by
+   --shop-builds-content-native-w's ratio instead of its own width. */
+.build-actions-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: var(--build-actions-left-native-w);
+  transform: scale(calc(100cqw / var(--shop-builds-content-native-w)));
+  transform-origin: top left;
+}
+
+/* Saves-tab-only counterpart to .build-actions-left-viewport, occupying
+   the same left slot in the row — hidden by default; shown (and
+   .build-actions-left-viewport hidden instead) via
+   .shop-builds.is-saves-tab below. */
+.build-actions-search-viewport {
+  display: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(var(--build-actions-search-native-w) * (100cqw / var(--shop-builds-content-native-w)));
+  height: calc(41px * (100cqw / var(--shop-builds-content-native-w)));
+}
+
+.build-actions-search {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--build-actions-search-native-w);
+  transform: scale(calc(100cqw / var(--shop-builds-content-native-w)));
+  transform-origin: top left;
+}
+
+.shop-builds.is-saves-tab .build-actions-left-viewport {
+  display: none;
+}
+
+.shop-builds.is-saves-tab .build-actions-search-viewport {
+  display: block;
+}
+
+/* Same relationship as .build-actions-left-viewport, but pushed to the
+   row's far right edge via margin-left:auto — replacing the old
+   margin-left:auto that used to live on .build-add-section-btn itself
+   back when these controls weren't wrapped in their own scaled unit. */
+.build-actions-right-viewport {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(var(--build-actions-right-native-w) * (100cqw / var(--shop-builds-content-native-w)));
+  height: calc(40px * (100cqw / var(--shop-builds-content-native-w)));
+  margin-left: auto;
+}
+
+.build-actions-right {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: var(--build-actions-right-native-w);
+  transform: scale(calc(100cqw / var(--shop-builds-content-native-w)));
+  transform-origin: top left;
 }
 
 .build-add-section-btn,
@@ -842,14 +1031,10 @@ body {
    at this button's ~40px rendered height (280 * 40/81), so the texture
    fills the box exactly with no horizontal stretch/squish either way. */
 .build-add-section-btn {
-  /* Pushes itself + .build-clear-sections-btn after it (rather than just
-     .build-clear-sections-btn) to the row's far right edge, rather than
-     sitting wherever the hero picker + title input's own width happens
-     to end. */
-  margin-left: auto;
   background-image: url("../frontend_assets/shop_header_large.png");
   background-size: 100% 100%;
   width: 138px;
+  font-size: 16px;
 }
 
 .build-add-section-btn:disabled {
@@ -885,126 +1070,6 @@ body {
   filter: invert(1);
 }
 
-.build-hero-picker-wrap {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.build-hero-picker-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 41px;
-  /* Same width as .build-add-section-btn, which uses this same image —
-     matches shop_header_large.png's own ratio (280x81) at this ~41px
-     height, so background-size:100% 100% shows the whole texture with
-     no stretch or crop, instead of the crop varying with content-driven
-     width like "auto 100%" + a variable-width box did. */
-  width: 138px;
-  padding: 0 10px 0 0;
-  background-color: transparent;
-  background-image: url("../frontend_assets/shop_header_large.png");
-  background-size: 100% 100%;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.build-hero-picker-btn:hover {
-  filter: brightness(1.3);
-}
-
-.build-hero-picker-icon-slot {
-  position: relative;
-  width: 41px;
-  height: 41px;
-  padding: 2px;
-  box-sizing: border-box;
-  flex-shrink: 0;
-  overflow: hidden;
-  border-radius: 4px 0 0 4px;
-}
-
-/* Generic placeholder shown until a hero is actually picked — hidden
-   (see .has-hero below) once .build-hero-picker-icon has a real
-   portrait to show instead. */
-.build-hero-picker-icon-slot::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 20px;
-  height: 20px;
-  background-image: url("../frontend_assets/icon_person.svg");
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  filter: invert(1);
-  opacity: 0.75;
-}
-
-.build-hero-picker-btn.has-hero .build-hero-picker-icon-slot::after {
-  display: none;
-}
-
-.build-hero-picker-icon {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.build-hero-picker-name {
-  flex: 1;
-  min-width: 0;
-  font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 15px;
-  color: #f2ead9;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Signals this button opens a dropdown, same idea as a native <select>'s
-   arrow — sits after the name, at the button's own right edge. */
-.build-hero-picker-caret {
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-  margin-left: auto;
-  background-image: url("../frontend_assets/icon_dropdown.svg");
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  filter: invert(1);
-  opacity: 0.75;
-}
-
-/* Vertical list — icon column + name column per row — rather than a
-   grid, so each name reads left-to-right beside its own icon. */
-.build-hero-picker-dropdown {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  flex-direction: column;
-  width: 210px;
-  max-height: 320px;
-  overflow-y: auto;
-  padding: 6px;
-  background-color: rgb(15 13 19);
-  border: 1px solid rgba(240, 236, 226, 0.15);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-.build-hero-picker-dropdown.is-open {
-  display: flex;
-  /* Above the build sections/items below it (those top out around
-     z-index 6 for a selected .mod-box) — this dropdown sits below the
-     title row but visually needs to float over everything under it. */
-  z-index: 20;
-}
-
 .build-hero-option {
   display: flex;
   align-items: center;
@@ -1014,9 +1079,9 @@ body {
   cursor: pointer;
 }
 
-/* Persistent selection highlight — only meaningful where the option list
-   stays open after picking (the save-build modal's hero list), unlike
-   the hero-picker dropdown, which just closes on click. */
+/* Persistent selection highlight — this list (the save-build modal's
+   hero list) stays open after picking, unlike a typical dropdown that
+   closes on click, so the current choice needs to stay visibly marked. */
 .build-hero-option.is-selected {
   background-color: rgba(0, 255, 245, 0.12);
 }
@@ -1031,13 +1096,8 @@ body {
   flex-shrink: 0;
   box-sizing: border-box;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
   object-fit: cover;
   display: block;
-}
-
-.build-hero-option:hover img {
-  border-color: #00fff5;
 }
 
 .build-hero-option-name {
@@ -1054,16 +1114,17 @@ body {
 
 /* ---------- Save Build button + confirm modal ---------- */
 
-.build-save-btn {
+.build-save-btn,
+.build-new-build-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   height: 41px;
-  /* Same width as .build-add-section-btn/.build-hero-picker-btn, which
-     use this same image — matches shop_header_large.png's own ratio
-     (280x81) at this ~41px height, so background-size:100% 100% shows
-     the whole texture with no stretch or crop. */
+  /* Same width as .build-add-section-btn, which uses this same image —
+     matches shop_header_large.png's own ratio (280x81) at this ~41px
+     height, so background-size:100% 100% shows the whole texture with
+     no stretch or crop. */
   width: 138px;
   padding: 0 12px;
   box-sizing: border-box;
@@ -1074,14 +1135,46 @@ body {
   border-radius: 4px;
   cursor: pointer;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   color: #f2ead9;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.build-save-btn:hover {
+.build-save-btn:hover,
+.build-new-build-btn:hover {
   filter: brightness(1.3);
+}
+
+.build-title-input {
+  height: 41px;
+  /* shop_header_extra_large.png's own ratio (600x81) at this input's
+     41px height (600 * 41/81). */
+  width: 304px;
+  padding: 0px 26px;
+  box-sizing: border-box;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  color: #f2ead9;
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_header_extra_large.png");
+  background-size: auto 100%;
+  background-position: center;
+  border: none;
+  flex-shrink: 0;
+}
+
+.build-title-input::placeholder {
+  color: #f2ead9;
+  opacity: 0.4;
+}
+
+.build-title-input:focus {
+  filter: brightness(1.15);
+  outline: 1px solid rgba(0, 255, 245, 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .save-build-modal-overlay {
@@ -1105,14 +1198,15 @@ body {
   max-height: 80vh;
   padding: 20px;
   box-sizing: border-box;
-  background-color: rgb(15 13 19);
-  border: 1px solid rgba(240, 236, 226, 0.15);
+  background-image: url("../frontend_assets/settings_bg_tooltip.png");
+  background-size: cover;
+  background-position: center;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  box-shadow: 9px 15px 20px 0px rgb(0 0 0 / 9%);
 }
 
 .save-build-modal-title {
-  margin-bottom: 10px;
+  margin-bottom: 20px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 18px;
   font-weight: 700;
@@ -1124,10 +1218,21 @@ body {
   margin-top: 10px;
   margin-bottom: 4px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 12px;
+  font-size: 16px;
   letter-spacing: 0.5px;
   color: #f2ead9;
   opacity: 0.6;
+}
+
+/* New Build's confirm dialog (see .new-build-confirm-modal in app.js) —
+   its one piece of body content, standing in for the name/hero fields
+   the Save Build modal has instead. */
+.new-build-confirm-message {
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #f2ead9;
+  opacity: 0.8;
 }
 
 .save-build-name-input {
@@ -1137,7 +1242,7 @@ body {
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 14px;
   color: #f2ead9;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgb(15 13 19);
   border: 1px solid rgba(240, 236, 226, 0.15);
   border-radius: 4px;
 }
@@ -1154,7 +1259,7 @@ body {
   max-height: 240px;
   overflow-y: auto;
   padding: 4px;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgb(15 13 19);
   border-radius: 4px;
 }
 
@@ -1195,40 +1300,181 @@ body {
   filter: brightness(1.1);
 }
 
-/* ---------- saved-builds tab (Saved Builds cards) ---------- */
+/* ---------- saved-builds tab (hero roster + per-hero build panel) ---------- */
 
 .saved-builds-viewport {
   display: none;
   width: 100%;
+  gap: 24px;
 }
 
 .shop-builds.is-saves-tab .saved-builds-viewport {
-  display: block;
-}
-
-.saved-builds-container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
 }
 
 .saved-builds-empty {
   padding: 24px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 700;
   color: #f2ead9;
   opacity: 0.4;
   text-align: center;
 }
 
-.saved-build-card {
+/* Left 2/3: every hero, always browsable (not just ones with saved
+   builds yet) — click a portrait to see their builds in
+   .saved-builds-hero-panel alongside. 8 columns, same tight grid look as
+   the in-game hero-select screen. */
+.saved-builds-heroes {
+  flex: 0 0 66.6667%;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  align-content: flex-start;
+}
+
+.saved-builds-hero-portrait {
   position: relative;
+  /* Matches settings_bg_portrait.png's own aspect ratio (640/920) rather
+     than the hero portrait images' (1168/1584) — the box now takes the
+     background's shape, so background-size:cover below fills it exactly
+     with no letterboxing/cropping mismatch to reconcile. Not
+     overflow:hidden — the img/background already fill this box exactly
+     on their own (nothing here would ever bleed past it), and
+     .saved-builds-hero-badge (below) deliberately hangs half outside
+     this box's own corner, which overflow:hidden would otherwise clip. */
+  aspect-ratio: 640 / 920;
+  cursor: pointer;
+  box-sizing: border-box;
+  background-image: url("../frontend_assets/settings_bg_portrait.png");
+  background-size: cover;
+  background-position: center;
+}
+
+.saved-builds-hero-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Same hover treatment as a shop item (.mod-box:hover) — lift + gentle
+   sway, reusing that same @keyframes selected-rotate. */
+.saved-builds-hero-portrait:hover {
+  transform: translateY(-2px);
+  animation: selected-rotate 3.6s ease-in-out infinite;
+  z-index: 2;
+}
+
+/* outline (not border) — a border here would eat 2px into the box
+   (box-sizing:border-box), shifting where .saved-builds-hero-badge's
+   bottom:0/right:0 resolve to (the padding edge, which moves when the
+   border does) and throwing off its corner-centering by exactly the
+   border width whenever a hero happened to be selected. outline paints
+   without affecting the box model at all, so the badge stays correctly
+   centered on the true corner regardless of selection state. Also keeps
+   the same lift+sway animation .saved-builds-hero-portrait:hover uses
+   running continuously (not just while the mouse happens to be over it)
+   — same "stays animated while selected" idea as .mod-box.selected. */
+.saved-builds-hero-portrait.is-selected {
+  outline: 2px solid #00fff5;
+  outline-offset: -2px;
+  transform: translateY(-2px);
+  animation: selected-rotate 3.6s ease-in-out infinite;
+  z-index: 2;
+}
+
+/* While the search box has a query, any hero with no build matching it
+   dims — only rendered onto portraits at all when a query is present
+   (see renderSavedBuildsHeroGrid in app.js), so an empty search leaves
+   every portrait at full opacity. */
+.saved-builds-hero-portrait.is-dimmed {
+  opacity: 0.5;
+}
+
+/* Saved-build count for this hero — only rendered at all when it's
+   above 0 (see renderSavedBuildsHeroGrid in app.js), so there's no "0"
+   badge cluttering every hero without a build yet. bottom:0/right:0 puts
+   this badge's own bottom-right corner flush with the portrait's; the
+   translate(20%, 20%) then nudges it out a bit further past that corner.
+   z-index — the portrait itself (.saved-builds-hero-portrait) has no
+   z-index of its own outside :hover, so this badge (an absolutely
+   positioned child) escapes into the shared grid-level stacking context
+   instead of being trapped under its own portrait, and outranks
+   neighboring portraits there so it isn't hidden by whichever one
+   happens to overlap it. */
+.saved-builds-hero-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  transform: translate(20%, 20%);
+  z-index: 3;
+  width: 26px;
+  height: 26px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgb(15 13 19);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f2ead9;
+  pointer-events: none;
+}
+
+/* Right 1/3: whichever hero is currently selected — name/portrait header
+   plus a plain list of that hero's saved builds (no per-row portrait,
+   unlike the old flat card grid this replaced — you already just picked
+   the hero via its portrait on the left, so repeating it per row would
+   be redundant). */
+.saved-builds-hero-panel {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.saved-builds-hero-panel-header {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  width: 120px;
-  padding: 16px 12px;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(240, 236, 226, 0.15);
+}
+
+.saved-builds-hero-panel-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.saved-builds-hero-panel-name {
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #f2ead9;
+}
+
+.saved-builds-hero-build-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.saved-builds-hero-build-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 34px 0 12px;
   box-sizing: border-box;
   background-color: rgba(23, 21, 27, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1236,48 +1482,30 @@ body {
   cursor: pointer;
 }
 
-.saved-build-card:hover {
+.saved-builds-hero-build-row:hover {
   border-color: #00fff5;
 }
 
-.saved-build-card.is-current {
+.saved-builds-hero-build-row.is-current {
   border-color: rgba(0, 255, 245, 0.6);
-}
-
-.saved-build-card-icon {
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-  border-radius: 6px;
   background-color: rgb(15 13 19);
-  background-size: cover;
-  background-position: center;
 }
 
-.saved-build-card-icon.is-empty {
-  background-image: url("../frontend_assets/icon_person.svg");
-  background-size: 24px 24px;
-  background-position: center;
-  background-repeat: no-repeat;
-  filter: invert(1);
-  opacity: 0.5;
-}
-
-.saved-build-card-name {
+.saved-builds-hero-build-name {
   max-width: 100%;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 13px;
+  font-size: 16px;
   color: #f2ead9;
-  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.saved-build-card-delete {
+.saved-builds-hero-build-delete {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
   width: 18px;
   height: 18px;
   border-radius: 3px;
@@ -1289,17 +1517,24 @@ body {
   opacity: 0.5;
 }
 
-.saved-build-card-delete:hover {
+.saved-builds-hero-build-delete:hover {
   opacity: 1;
   background-color: rgba(255, 255, 255, 0.15);
 }
 
-.build-title-input {
-  flex: 0 0 auto;
+/* Filters .saved-builds-hero-panel's build list by name as you type (see
+   savedBuildsSearchInputEl in app.js) — lives in .build-actions-search
+   (style.css, near .build-section-actions-row), the Saves-tab
+   counterpart to the Builds tab's Save Build button; that shared row's
+   own scaled unit handles this input's actual positioning/sizing, so
+   this rule is just the input's own look (same shop_header_extra_large
+   texture the old Builds-tab title editor used, before naming a build
+   moved entirely into the Save Build modal). */
+.saved-builds-search-input {
+  display: block;
   height: 41px;
   /* shop_header_extra_large.png's own ratio (600x81) at this input's
-     41px height (600 * 41/81) — same reasoning as the Add Section/Clear
-     button widths above. */
+     41px height (600 * 41/81). */
   width: 304px;
   padding: 0px 26px;
   box-sizing: border-box;
@@ -1314,12 +1549,12 @@ body {
   border: none;
 }
 
-.build-title-input::placeholder {
+.saved-builds-search-input::placeholder {
   color: #f2ead9;
   opacity: 0.4;
 }
 
-.build-title-input:focus {
+.saved-builds-search-input:focus {
   filter: brightness(1.15);
   outline: 1px solid rgba(0, 255, 245, 0.5);
   outline-offset: 2px;
@@ -1691,11 +1926,33 @@ body {
   opacity: 0.4;
 }
 
+/* Reserves layout space for .category-tabs (below), which is scaled and
+   taken out of flow — width/height computed from the SAME ratio
+   #shop-panels itself scales by (--tooltip-display-h, JS-synced to its
+   actual rendered height, over --panel-h, its native design height), so
+   the tab stack visibly shrinks/grows in step with the panel beside it
+   instead of staying pinned at native size. 450px/72px are the stack's
+   own constant native height/width — always exactly one of the 3
+   category tabs + the search button is "active" (216px) and the rest
+   are 72px (see .category-tab.active below), so this total never
+   actually varies, unlike e.g. .build-sections-container's arbitrary
+   content-driven height — no JS measurement needed. */
+.category-tabs-viewport {
+  position: relative;
+  flex-shrink: 0;
+  width: calc(72px * (var(--tooltip-display-h) / var(--panel-h)));
+  height: calc(450px * (var(--tooltip-display-h) / var(--panel-h)));
+}
+
 .category-tabs {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transform: translateX(4px);
+  transform: scale(calc(var(--tooltip-display-h) / var(--panel-h))) translateX(4px);
+  transform-origin: top left;
 }
 
 .category-tab {
@@ -2190,8 +2447,32 @@ body {
   display: none;
 }
 
-.shop-panel.dimming .mod-box:not(.is-hovered):not(.selected) {
+/* .is-upgrade-highlight — set by app.js (updateUpgradeHighlight) on
+   whatever the hovered/selected item's tooltip lists under "Upgrades
+   To" — stays exempt from dimming too, so that upgrade path reads
+   clearly against the rest of the panel fading out. */
+.shop-panel.dimming .mod-box:not(.is-hovered):not(.selected):not(.is-upgrade-highlight) {
   opacity: 0.5;
+}
+
+/* While something's selected, only its own card still responds to
+   :hover (app.js's mouseenter handler already skips every other card's
+   tooltip/highlight logic entirely) — this neutralizes the matching
+   lift+sway CSS animation on those other cards too, so hovering them has
+   no visible effect at all until the selection is cleared. */
+.shop-panel.dimming .mod-box:not(.is-hovered):not(.selected):hover {
+  transform: none;
+  animation: none;
+  z-index: auto;
+}
+
+/* Same "other items don't respond to hover while something's selected"
+   rule, applied to the add-to-build badge specifically — except
+   .is-upgrade-highlight items (this hovered item's own "Upgrades To"
+   targets), which stay fully hoverable/addable like the selected item
+   itself does. */
+.shop-panel.dimming .mod-box:not(.is-hovered):not(.selected):not(.is-upgrade-highlight):hover .mod-box-add-badge {
+  display: none;
 }
 
 .card-background {
@@ -2350,11 +2631,11 @@ body {
   top: 0;
   left: 0;
   width: var(--tooltip-display-native-w);
-  /* Bottom padding gives the scroll range 40px of extra room, roughly
-     matching .tooltip-display's own 40px clip-path crop — otherwise the
-     very last bit of a long tooltip/notes list would land exactly in
-     that cropped band and never be reachable even at max scroll. */
-  padding: 42px 36px 40px 44px;
+  /* No top/bottom padding of its own — that room is instead
+     .tooltip-scroll-viewport's --tooltip-crop-top/-bottom inset (see
+     :root and .tooltip-scroll-viewport in style.css). Left/right stay
+     padded so text doesn't sit flush against the card's side edges. */
+  padding: 0px 36px 0px 44px;
   box-sizing: border-box;
   transform: scale(calc(100cqw / var(--tooltip-display-native-w)));
   transform-origin: top left;

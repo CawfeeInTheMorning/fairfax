@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Deadlock Shop Browser</title>
 <link rel="icon" type="image/png" href="logo_curiosity.png">
-<link rel="stylesheet" href="css/style.css?v=140">
+<link rel="stylesheet" href="css/style.css?v=165">
 </head>
 <body>
 
@@ -14,12 +14,14 @@
 </header>
 
 <div class="shop-layout">
-  <nav class="category-tabs" id="category-tabs">
-    <!-- tab buttons injected by app.js -->
-    <button id="tab-search" type="button" aria-label="Search">
-      <img src="frontend_assets/shop_icon_search.png" alt="">
-    </button>
-  </nav>
+  <div class="category-tabs-viewport">
+    <nav class="category-tabs" id="category-tabs">
+      <!-- tab buttons injected by app.js -->
+      <button id="tab-search" type="button" aria-label="Search">
+        <img src="frontend_assets/shop_icon_search.png" alt="">
+      </button>
+    </nav>
+  </div>
 
   <div id="shop-panels"></div>
 
@@ -27,15 +29,17 @@
 </div>
 
 <div class="shop-builds-wrap">
-  <nav class="build-tabs" id="build-tabs">
-    <!-- tab buttons injected by app.js -->
-  </nav>
+  <div class="build-tabs-viewport">
+    <nav class="build-tabs" id="build-tabs">
+      <!-- tab buttons injected by app.js -->
+    </nav>
+  </div>
   <div class="shop-builds" id="shop-builds"></div>
 </div>
 
 <div class="shop-graphs" id="shop-graphs"></div>
 
 <script src="js/items-data.js?v=18"></script>
-<script src="js/app.js?v=71"></script>
+<script src="js/app.js?v=87"></script>
 </body>
 </html>
