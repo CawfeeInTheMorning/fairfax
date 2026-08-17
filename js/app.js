@@ -84,6 +84,23 @@
     name: HERO_NAME_OVERRIDES[slug] || slug.charAt(0).toUpperCase() + slug.slice(1),
   }));
 
+  // hero_icons/hero_mini and hero_icons/hero_logos mostly follow the same
+  // <slug>_mini.png / <slug>_logo.svg pattern as hero_icons/ itself, but
+  // both use "silver_mini.png"/"silver_logo.svg" rather than
+  // "silver_human_..." — this map patches just that lookup rather than
+  // assuming every folder matches HERO_SLUGS 1:1. (hero_mini's dynamo
+  // typo and hero_logos' missing vyper entry — both handled here too at
+  // one point — have since been fixed at the source.)
+  const HERO_ASSET_SLUG_OVERRIDES = { silver_human: "silver" };
+
+  function heroMiniFile(hero) {
+    return "hero_icons/hero_mini/" + (HERO_ASSET_SLUG_OVERRIDES[hero.slug] || hero.slug) + "_mini.png";
+  }
+
+  function heroLogoFile(hero) {
+    return "hero_icons/hero_logos/" + (HERO_ASSET_SLUG_OVERRIDES[hero.slug] || hero.slug) + "_logo.svg";
+  }
+
   // Mirrors the .mod-box / .build-section-items sizing in style.css (80x125
   // cards, 4px gap, 12px padding on the items row, 2px section border) —
   // used to snap section resizing to whole numbers of item columns/rows
@@ -135,6 +152,7 @@
   let buildTitleInputEl = null;
   let savedBuildsHeroesEl = null;
   let savedBuildsHeroPanelEl = null;
+  let infoTabViewportEl = null;
   let selectedSavedHeroSlug = null;
   let savedBuildsSearchInputEl = null;
   let savedBuildsSearchQuery = "";
@@ -212,18 +230,30 @@
     savesTab.innerHTML = '<img class="tab-icon" src="frontend_assets/shop_icon_save.png" alt="">';
     savesTab.addEventListener("click", () => setActiveBuildTab("saves"));
     buildTabsEl.appendChild(savesTab);
+
+    const infoTab = document.createElement("button");
+    infoTab.type = "button";
+    infoTab.className = "build-tab is-info";
+    infoTab.dataset.buildTab = "info";
+    infoTab.setAttribute("aria-label", "Info");
+    infoTab.innerHTML = '<img class="tab-icon" src="frontend_assets/shop_icon_info.png" alt="">';
+    infoTab.addEventListener("click", () => setActiveBuildTab("info"));
+    buildTabsEl.appendChild(infoTab);
   }
 
   function setActiveBuildTab(tab) {
     document.querySelectorAll(".build-tab").forEach((el) => {
       el.classList.toggle("active", el.dataset.buildTab === tab);
     });
-    if (shopBuildsEl) shopBuildsEl.classList.toggle("is-saves-tab", tab === "saves");
+    if (shopBuildsEl) {
+      shopBuildsEl.classList.toggle("is-saves-tab", tab === "saves");
+      shopBuildsEl.classList.toggle("is-info-tab", tab === "info");
+    }
     // .shop-graphs is a sibling of .shop-builds-wrap, not a descendant of
-    // #shop-builds, so the CSS .shop-builds.is-saves-tab toggle above
-    // can't reach it directly (no combinator connects them) — toggled
-    // here instead.
-    if (shopGraphsEl) shopGraphsEl.classList.toggle("is-hidden", tab === "saves");
+    // #shop-builds, so the CSS .shop-builds.is-saves-tab/.is-info-tab
+    // toggles above can't reach it directly (no combinator connects them)
+    // — toggled here instead.
+    if (shopGraphsEl) shopGraphsEl.classList.toggle("is-hidden", tab === "saves" || tab === "info");
   }
 
   function buildPanels() {
@@ -1662,6 +1692,14 @@
 
     inner.appendChild(savedBuildsViewport);
 
+    // Info tab content — placeholder for now (explanations of topics around
+    // the site); same sibling-of-`columns` pattern as savedBuildsViewport
+    // above, hidden by default and toggled by .shop-builds.is-info-tab.
+    const infoTabViewport = document.createElement("div");
+    infoTabViewport.className = "info-tab-viewport";
+    inner.appendChild(infoTabViewport);
+    infoTabViewportEl = infoTabViewport;
+
     shopBuildsEl.appendChild(inner);
 
     // One delegated listener set on shopBuildsEl — the stable, outermost
@@ -1776,6 +1814,11 @@
     const settingsDropdown = document.createElement("div");
     settingsDropdown.className = "build-section-settings-dropdown";
     if (openSectionSettingsId === section.id) settingsDropdown.classList.add("is-open");
+
+    const settingsTitle = document.createElement("div");
+    settingsTitle.className = "build-section-settings-title";
+    settingsTitle.textContent = "Section Options";
+    settingsDropdown.appendChild(settingsTitle);
 
     const optionalRow = document.createElement("label");
     optionalRow.className = "build-section-settings-optional-row";
@@ -2018,7 +2061,7 @@
 
     const message = document.createElement("div");
     message.className = "new-build-confirm-message";
-    message.textContent = "Your current build is saved. Starting a new build will clear the canvas so you can begin something fresh.";
+    message.textContent = "Your current build is saved in your browser's local storage.";
     modal.appendChild(message);
 
     const actions = document.createElement("div");
@@ -2244,14 +2287,12 @@
 
     const header = document.createElement("div");
     header.className = "saved-builds-hero-panel-header";
-    const headerIcon = document.createElement("img");
-    headerIcon.className = "saved-builds-hero-panel-icon";
-    headerIcon.src = "hero_icons/" + hero.file;
-    headerIcon.alt = "";
-    header.appendChild(headerIcon);
-    const headerName = document.createElement("span");
+    const headerName = document.createElement("div");
     headerName.className = "saved-builds-hero-panel-name";
-    headerName.textContent = hero.name;
+    const logoImg = document.createElement("img");
+    logoImg.src = heroLogoFile(hero);
+    logoImg.alt = hero.name;
+    headerName.appendChild(logoImg);
     header.appendChild(headerName);
     savedBuildsHeroPanelEl.appendChild(header);
 
@@ -2279,10 +2320,21 @@
         row.className = "saved-builds-hero-build-row" + (buildState.savedBuildId === saved.id ? " is-current" : "");
         row.title = saved.name;
 
+        const miniIcon = document.createElement("img");
+        miniIcon.className = "saved-builds-hero-build-mini-icon";
+        miniIcon.src = heroMiniFile(hero);
+        miniIcon.alt = "";
+        row.appendChild(miniIcon);
+
         const name = document.createElement("span");
         name.className = "saved-builds-hero-build-name";
         name.textContent = saved.name;
         row.appendChild(name);
+
+        const date = document.createElement("span");
+        date.className = "saved-builds-hero-build-date";
+        date.textContent = new Date(saved.savedAt).toLocaleDateString("en-US");
+        row.appendChild(date);
 
         const deleteBtn = document.createElement("div");
         deleteBtn.className = "saved-builds-hero-build-delete";

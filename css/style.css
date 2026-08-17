@@ -386,6 +386,10 @@ body {
   background-color: #76362f;
 }
 
+.build-tab.is-info {
+  background-color: #2f6376;
+}
+
 .build-tab:not(.active):hover {
   filter: brightness(1.1);
 }
@@ -434,13 +438,21 @@ body {
   background-image: url("../frontend_assets/shop_bg_saves.png");
 }
 
+/* Info tab — same placeholder role as .shop-builds.is-saves-tab above,
+   content to be added later (see .info-tab-viewport). */
+.shop-builds.is-info-tab {
+  min-height: 552px;
+  background-image: url("../frontend_assets/shop_bg_info.png");
+}
+
 /* Only the sections/investment-bars columns hide — .build-section-actions-row
    itself stays visible on both tabs (its Save Build/search box slot
    swaps which one is shown instead — see .build-actions-left-viewport/
    .build-actions-search-viewport above), same as
    .build-add-section-viewport's role as a page-spanning header above
    both. */
-.shop-builds.is-saves-tab .shop-builds-columns {
+.shop-builds.is-saves-tab .shop-builds-columns,
+.shop-builds.is-info-tab .shop-builds-columns {
   display: none;
 }
 
@@ -974,12 +986,22 @@ body {
   transform-origin: top left;
 }
 
-.shop-builds.is-saves-tab .build-actions-left-viewport {
+.shop-builds.is-saves-tab .build-actions-left-viewport,
+.shop-builds.is-info-tab .build-actions-left-viewport {
   display: none;
 }
 
 .shop-builds.is-saves-tab .build-actions-search-viewport {
   display: block;
+}
+
+/* Add Section/Clear/Save Build only make sense while editing a build on
+   the Builds tab — neither the Saves tab (just for loading a saved one)
+   nor the Info tab (no build content at all) have anything for them to
+   act on. */
+.shop-builds.is-saves-tab .build-actions-right-viewport,
+.shop-builds.is-info-tab .build-actions-right-viewport {
+  display: none;
 }
 
 /* Same relationship as .build-actions-left-viewport, but pushed to the
@@ -1206,7 +1228,7 @@ body {
 }
 
 .save-build-modal-title {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 18px;
   font-weight: 700;
@@ -1235,6 +1257,15 @@ body {
   opacity: 0.8;
 }
 
+/* settings_bg_tooltip.png is a repeating pattern with a distinct top
+   edge — center (.save-build-modal's own default) crops into the middle
+   of that pattern, hiding the top edge entirely; top instead keeps the
+   image's own top aligned with this modal's top, so that edge stays
+   visible. */
+.new-build-confirm-modal {
+  background-position: top center;
+}
+
 .save-build-name-input {
   height: 36px;
   padding: 0 10px;
@@ -1242,7 +1273,9 @@ body {
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 14px;
   color: #f2ead9;
-  background-color: rgb(15 13 19);
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_header_extra_large.png");
+  background-size: auto 100%;
   border: 1px solid rgba(240, 236, 226, 0.15);
   border-radius: 4px;
 }
@@ -1283,21 +1316,25 @@ body {
 }
 
 .save-build-cancel-btn {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_header_medium.png");
+  background-size: 100% 100%;
   color: #f2ead9;
 }
 
 .save-build-cancel-btn:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  filter: brightness(1.3);
 }
 
 .save-build-confirm-btn {
-  background-color: #00fff5;
-  color: #0b0a0d;
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_header_medium.png");
+  background-size: 100% 100%;
+  color: #f2ead9;
 }
 
 .save-build-confirm-btn:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.3);
 }
 
 /* ---------- saved-builds tab (hero roster + per-hero build panel) ---------- */
@@ -1310,6 +1347,17 @@ body {
 
 .shop-builds.is-saves-tab .saved-builds-viewport {
   display: flex;
+}
+
+/* ---------- info tab (placeholder — content added later) ---------- */
+
+.info-tab-viewport {
+  display: none;
+  width: 100%;
+}
+
+.shop-builds.is-info-tab .info-tab-viewport {
+  display: block;
 }
 
 .saved-builds-empty {
@@ -1367,22 +1415,31 @@ body {
   z-index: 2;
 }
 
-/* outline (not border) — a border here would eat 2px into the box
-   (box-sizing:border-box), shifting where .saved-builds-hero-badge's
-   bottom:0/right:0 resolve to (the padding edge, which moves when the
-   border does) and throwing off its corner-centering by exactly the
-   border width whenever a hero happened to be selected. outline paints
-   without affecting the box model at all, so the badge stays correctly
-   centered on the true corner regardless of selection state. Also keeps
-   the same lift+sway animation .saved-builds-hero-portrait:hover uses
-   running continuously (not just while the mouse happens to be over it)
-   — same "stays animated while selected" idea as .mod-box.selected. */
+/* Keeps the same lift+sway animation .saved-builds-hero-portrait:hover
+   uses running continuously (not just while the mouse happens to be
+   over it) — same "stays animated while selected" idea as
+   .mod-box.selected. The selection indicator itself is the ::after
+   overlay below (card_selected.png, same asset/technique
+   .card-selected-overlay uses for a selected shop item) rather than a
+   border/outline here. */
 .saved-builds-hero-portrait.is-selected {
-  outline: 2px solid #00fff5;
-  outline-offset: -2px;
   transform: translateY(-2px);
   animation: selected-rotate 3.6s ease-in-out infinite;
   z-index: 2;
+}
+
+/* card_selected.png as an ::after overlay rather than this element's own
+   background-image — the hero <img> (a real child, painted after any
+   background-image) would otherwise completely cover it. Pseudo-element
+   content paints after real children by default, so no z-index is
+   needed to keep this above the <img>. */
+.saved-builds-hero-portrait.is-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../frontend_assets/card_selected.png");
+  background-size: 100% 100%;
+  pointer-events: none;
 }
 
 /* While the search box has a query, any hero with no build matching it
@@ -1410,8 +1467,8 @@ body {
   right: 0;
   transform: translate(20%, 20%);
   z-index: 3;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -1420,7 +1477,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 3px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
   color: #f2ead9;
   pointer-events: none;
@@ -1442,25 +1499,30 @@ body {
 .saved-builds-hero-panel-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(240, 236, 226, 0.15);
 }
 
-.saved-builds-hero-panel-icon {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 6px;
-  object-fit: cover;
-}
-
+/* Holds the selected hero's logo (hero_icons/hero_logos/) — sized by
+   the img rule below; the font/color rules here are unused while that's
+   the only content, kept only as a plain fallback in case a future
+   hero's logo file ever goes missing again. */
 .saved-builds-hero-panel-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: #f2ead9;
+}
+
+.saved-builds-hero-panel-name img {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .saved-builds-hero-build-list {
@@ -1473,10 +1535,19 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  height: 40px;
+  gap: 8px;
+  height: 50px;
+  margin-top: 10px;
   padding: 0 34px 0 12px;
   box-sizing: border-box;
-  background-color: rgba(23, 21, 27, 0.6);
+  /* auto 100% (not 100% 100%) keeps shop_header_extra_large.png at its
+     own native aspect ratio instead of stretching it to this row's
+     (variable, flex-driven) width — repeat-x tiles it to still fill that
+     full width without distorting it. */
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_header_extra_large.png");
+  background-size: auto 100%;
+  background-repeat: repeat-x;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   cursor: pointer;
@@ -1491,14 +1562,48 @@ body {
   background-color: rgb(15 13 19);
 }
 
+/* One per row (see heroMiniFile in app.js) — every row in this list is
+   the same selected hero, per-row rather than shared once because that's
+   what was asked for, not because the icon could ever actually differ
+   row to row within a single hero's build list. */
+.saved-builds-hero-build-mini-icon {
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+/* Same lift+sway hover treatment as a shop item's own icon
+   (.mod-box:hover), applied to this row's mini icon specifically —
+   while the row itself is hovered, or is the currently-loaded build. */
+.saved-builds-hero-build-row:hover .saved-builds-hero-build-mini-icon,
+.saved-builds-hero-build-row.is-current .saved-builds-hero-build-mini-icon {
+  transform: translateY(-2px);
+  animation: selected-rotate 3.6s ease-in-out infinite;
+}
+
 .saved-builds-hero-build-name {
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 16px;
   color: #f2ead9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Save date (month/day/year) — muted and fixed to its own content width
+   so it never gets squeezed by a long build name, which truncates
+   instead (see flex:1/min-width:0 on .saved-builds-hero-build-name
+   above). */
+.saved-builds-hero-build-date {
+  flex-shrink: 0;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 12px;
+  color: #f2ead9;
+  opacity: 0.5;
+  white-space: nowrap;
 }
 
 .saved-builds-hero-build-delete {
@@ -1725,7 +1830,9 @@ body {
 /* Sits as a sibling of .build-section-scroll (see buildSectionEl in
    app.js) so a short section's own overflow:auto content area can't
    clip or scroll it away — positioned relative to .build-section itself,
-   just under the header where the settings button lives. */
+   just under the header where the settings button lives. Same
+   background/shadow/radius treatment as .save-build-modal (texture,
+   no border), just sized to this dropdown's own much smaller footprint. */
 .build-section-settings-dropdown {
   display: none;
   position: absolute;
@@ -1734,16 +1841,25 @@ body {
   z-index: 10;
   flex-direction: column;
   gap: 10px;
-  min-width: 140px;
+  min-width: 190px;
   padding: 10px;
-  background-color: rgb(15 13 19);
-  border: 1px solid rgba(240, 236, 226, 0.15);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  background-image: url("../frontend_assets/settings_bg_tooltip.png");
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+  box-shadow: 9px 15px 20px 0px rgb(0 0 0 / 9%);
 }
 
 .build-section-settings-dropdown.is-open {
   display: flex;
+}
+
+.build-section-settings-title {
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #f2ead9;
 }
 
 .build-section-settings-optional-row {
@@ -1783,13 +1899,13 @@ body {
 
 .build-section-settings-colors {
   display: grid;
-  grid-template-columns: repeat(5, 18px);
+  grid-template-columns: repeat(5, 28px);
   gap: 6px;
 }
 
 .build-section-color-swatch {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   box-sizing: border-box;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 3px;
