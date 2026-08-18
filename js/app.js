@@ -3224,6 +3224,29 @@
     update();
   }
 
+  // Keeps .site-header-credit's right edge aligned with .tooltip-display's
+  // own right edge — .tooltip-display sits inside the centered
+  // .shop-layout flex row, so its right edge isn't a fixed offset from
+  // the page edge and has to be measured and kept in sync as the layout
+  // scales with the viewport, same rationale as syncShopBuildsAlignment
+  // above (just a single edge instead of a whole width/position).
+  function syncHeaderCreditAlignment() {
+    const creditEl = document.querySelector(".site-header-credit");
+    const headerEl = document.querySelector(".site-header");
+    if (!creditEl || !headerEl || !tooltipDisplayEl) return;
+    function update() {
+      const headerRect = headerEl.getBoundingClientRect();
+      const tooltipRect = tooltipDisplayEl.getBoundingClientRect();
+      const right = headerRect.right - tooltipRect.right;
+      creditEl.style.right = right + "px";
+    }
+    const ro = new ResizeObserver(update);
+    ro.observe(headerEl);
+    ro.observe(tooltipDisplayEl);
+    window.addEventListener("resize", update);
+    update();
+  }
+
   // .build-sections-container is a fixed-native-width, transform:scale'd
   // block (same technique as .tier-grid) so build content shrinks
   // proportionally with the shop grid — but unlike .tier-grid, its height
@@ -3404,6 +3427,7 @@
   buildNewBuildConfirmModal();
   syncTooltipDisplayHeight();
   syncShopBuildsAlignment();
+  syncHeaderCreditAlignment();
   syncBuildSectionsScale();
   syncInvestmentBarsScale();
   setupDragAutoScroll();
