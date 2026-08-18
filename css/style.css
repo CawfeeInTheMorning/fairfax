@@ -220,6 +220,7 @@ body {
 }
 
 .site-header {
+  position: relative;
   text-align: center;
   padding: 28px 16px 12px;
 }
@@ -227,6 +228,33 @@ body {
 .site-header-logo {
   height: 80px;
   width: auto;
+}
+
+.site-header-credit {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #bcb49c;
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.site-header-credit:hover {
+  color: #f2ead9;
+}
+
+.site-header-credit img {
+  height: 46px;
+  width: auto;
+}
+
+.site-header-credit:hover img {
+  transform: translateY(-2px);
+  animation: selected-rotate 3.6s ease-in-out infinite;
 }
 
 .site-header p {
@@ -1360,6 +1388,81 @@ body {
   display: block;
 }
 
+/* ---------- info tab content (Statistical Stats explainer) ---------- */
+
+.info-section {
+  margin-bottom: 24px;
+}
+
+.info-section-text {
+  margin: 36px 0 20px;
+  font-size: 18px;
+  line-height: 1.6;
+  color: #0f0d13;
+}
+
+.info-stat-value-na {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.info-stat-table {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 6px;
+}
+
+.info-stat-category {
+  background-color: rgb(15 13 19);
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+.info-stat-category-header {
+  font-family: "ValveOracle", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 2px solid currentColor;
+}
+
+.info-stat-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.info-stat-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.info-stat-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.info-stat-name {
+  font-size: 16px;
+  color: #f0ece2;
+}
+
+.info-stat-value {
+  min-width: 70px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #00fff5;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .saved-builds-empty {
   padding: 24px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
@@ -1474,7 +1577,6 @@ body {
   align-items: center;
   justify-content: center;
   background-color: rgb(15 13 19);
-  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 3px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 20px;
@@ -1520,8 +1622,9 @@ body {
 }
 
 .saved-builds-hero-panel-name img {
-  height: 32px;
-  width: auto;
+  height: 80px;
+  width: 180px;
+  object-fit: contain;
   display: block;
 }
 
@@ -1540,21 +1643,16 @@ body {
   margin-top: 10px;
   padding: 0 34px 0 12px;
   box-sizing: border-box;
-  /* auto 100% (not 100% 100%) keeps shop_header_extra_large.png at its
-     own native aspect ratio instead of stretching it to this row's
-     (variable, flex-driven) width — repeat-x tiles it to still fill that
-     full width without distorting it. */
   background-color: transparent;
   background-image: url("../frontend_assets/shop_header_extra_large.png");
-  background-size: auto 100%;
-  background-repeat: repeat-x;
+  background-size: 100% 100%;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   cursor: pointer;
 }
 
 .saved-builds-hero-build-row:hover {
-  border-color: #00fff5;
+  filter: brightness(1.1);
 }
 
 .saved-builds-hero-build-row.is-current {
@@ -2029,6 +2127,14 @@ body {
 
 .build-item-card:hover .build-item-remove-btn {
   display: flex;
+  /* .build-item-remove-btn is positioned relative to .build-item-card (the
+     static wrapper), while .mod-box itself is what actually moves on
+     hover (see .mod-box:hover) — without this, the button stays put while
+     the icon lifts/sways away from it. Same transform+animation as
+     .mod-box:hover, triggered by the same :hover state, keeps both moving
+     in lockstep so the button reads as attached to the icon. */
+  transform: translateY(-2px);
+  animation: selected-rotate 3.6s ease-in-out infinite;
 }
 
 .mod-box.used {
@@ -2209,31 +2315,52 @@ body {
 
 .search-input-wrap {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
+  gap: 20px;
   padding-top: 20px;
   flex-shrink: 0;
 }
 
 .search-input-inner {
   position: relative;
-  width: 400px;
+  /* shop_header_extra_large.png's own ratio (600x81) at this input's 41px
+     height (600 * 41/81) — matches this input's width to its background's
+     natural size at that height, so the background renders once instead
+     of tiling (background-repeat's default) to fill a wider box. */
+  width: 304px;
   max-width: calc(100% - 48px);
 }
 
+/* Same shop_header_extra_large.png treatment as .build-title-input, rather
+   than the plain rounded-rect input box this used before. */
 #item-search-input {
   width: 100%;
+  height: 41px;
   box-sizing: border-box;
-  font-size: 15px;
-  padding: 10px 36px 10px 16px;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  background: rgba(255, 255, 255, 0.92);
-  color: #201a14;
-  font-family: "ValveOracle", sans-serif;
+  font-size: 16px;
+  padding: 0px 36px 0px 16px;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  letter-spacing: 0.5px;
+  color: #f2ead9;
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_header_extra_large.png");
+  background-size: auto 100%;
+  background-position: center;
+  border: none;
+}
+
+#item-search-input::placeholder {
+  color: #f2ead9;
+  opacity: 0.4;
 }
 
 #item-search-input:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+  filter: brightness(1.15);
+  outline: 1px solid rgba(0, 255, 245, 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* Only shown once there's actually a query to clear. */
@@ -2255,10 +2382,17 @@ body {
   width: 100%;
   height: 100%;
   display: block;
-  background-image: url("../frontend_assets/icon_close.svg");
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
+  /* mask (not background-image) so the SVG can be tinted to an exact
+     color via background-color, rather than only inverted/dimmed. */
+  background-color: #f2ead9;
+  -webkit-mask-image: url("../frontend_assets/icon_close.svg");
+  mask-image: url("../frontend_assets/icon_close.svg");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   opacity: 0.6;
 }
 
@@ -2270,25 +2404,18 @@ body {
   display: flex;
 }
 
-/* One checkbox per distinct innate stat (see getAllInnateStatNames in
-   app.js) — a plain, fluid flex-wrap list rather than the scaled 1076px
-   canvas .search-results/.search-content-scaled use below, same as the
-   search input itself above it. */
-.search-filters-wrap {
+/* Sits to the right of the search bar, in the same row (see
+   .search-input-wrap's flex layout above) — narrows which fields the
+   query matches against instead of the old per-stat-name checkbox list
+   (see applySearchFilter in app.js). */
+.search-scope-toggles {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-content: flex-start;
-  gap: 8px 18px;
-  max-width: 760px;
-  max-height: 130px;
-  overflow-y: auto;
-  margin: 14px auto 0;
-  padding: 0 24px;
+  align-items: center;
+  gap: 14px;
   flex-shrink: 0;
 }
 
-.stat-filter-chip {
+.search-scope-chip {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2296,9 +2423,9 @@ body {
   user-select: none;
 }
 
-/* Visually hidden but still focusable/toggleable — .stat-filter-box is
+/* Visually hidden but still focusable/toggleable — .search-scope-box is
    the actual visible control, driven by the :checked state below. */
-.stat-filter-checkbox {
+.search-scope-checkbox {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -2306,40 +2433,61 @@ body {
   pointer-events: none;
 }
 
-.stat-filter-box {
+.search-scope-box {
   position: relative;
   width: 28px;
   height: 22px;
   flex-shrink: 0;
   box-sizing: border-box;
-  background-image: url("../frontend_assets/shop_header_small.png");
-  background-size: 100% 100%;
+  background-color: rgb(15, 13, 19);
   border-radius: 3px;
-  border: 2px solid transparent;
   transition: transform 0.1s ease;
 }
 
 /* Same hover treatment as a shop item (.mod-box:hover) — lift + gentle
    sway, reusing that same @keyframes selected-rotate rather than
    defining a near-identical one just for this. */
-.stat-filter-chip:hover .stat-filter-box {
+.search-scope-chip:hover .search-scope-box {
   transform: translateY(-2px);
   animation: selected-rotate 3.6s ease-in-out infinite;
 }
 
-.stat-filter-checkbox:checked ~ .stat-filter-box {
-  border-color: #00fff5;
-  box-shadow: inset 0 0 0 2px rgba(0, 255, 245, 0.35);
+/* Checked state shows a checkmark centered in the box instead of
+   highlighting the box itself. */
+.search-scope-box::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  /* mask (not background-image) so the SVG can be tinted to an exact
+     color via background-color, rather than only inverted/dimmed. */
+  background-color: #f2ead9;
+  -webkit-mask-image: url("../frontend_assets/icon_checkmark.svg");
+  mask-image: url("../frontend_assets/icon_checkmark.svg");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  opacity: 0;
 }
 
-.stat-filter-checkbox:focus-visible ~ .stat-filter-box {
+.search-scope-checkbox:checked ~ .search-scope-box::after {
+  opacity: 1;
+}
+
+.search-scope-checkbox:focus-visible ~ .search-scope-box {
   outline: 2px solid rgba(255, 255, 255, 0.6);
   outline-offset: 2px;
 }
 
-.stat-filter-name {
+.search-scope-label {
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 13px;
+  font-size: 16px;
   color: #f2ead9;
   white-space: nowrap;
 }
@@ -2349,7 +2497,7 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  margin: 40px 0;
+  margin: 18px 0;
 }
 
 /* Native-1076px-wide canvas scaled down as one rigid unit — same
@@ -2379,10 +2527,18 @@ body {
   font-family: "ValveOracle", sans-serif;
   font-size: 18px;
   letter-spacing: 1px;
-  text-transform: uppercase;
+  /* text-transform:capitalize only uppercases first letters, it doesn't
+     lowercase the rest — lowercase the whole string, then override just
+     the first letter back to uppercase, so this reads as "Weapon" (or
+     "Vitality"/"Spirit") regardless of the source label's own casing. */
+  text-transform: lowercase;
   color: #f2ead9;
   margin: 0 0 12px;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.search-section-title::first-letter {
+  text-transform: uppercase;
 }
 
 .search-grid {
@@ -2833,6 +2989,178 @@ body {
   opacity: 0.7;
 }
 
+/* Empirically-derived "statistical" souls-per-unit breakdown — its own
+   standalone rounded card (same margin-top:16px separation as
+   .tooltip-card-notes below), but built from its own top+body image pair
+   (tooltip_bg_actual_top.png/tooltip_bg_actual.png, both the exact same
+   500x115 / 500-wide dimensions as .tooltip-card-top/-body) rather than
+   reusing the item-category art, since the statistical-stats math applies
+   the same way regardless of which shop category the item is in. */
+.tooltip-card-statistical {
+  position: relative;
+  display: none;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.tooltip-card-statistical.visible {
+  display: block;
+}
+
+/* Same typography as .tooltip-card-name (ValveOracle) rather than its own
+   size, and top-left positioned (no vertical centering) like plain block
+   text — a single title line doesn't need .tooltip-card-top's
+   flex-column-centered treatment. background-size switches from
+   100% 100% (stretch-to-fit, .tooltip-card-top's approach) to 100% auto +
+   top-aligned so the now-shorter bar crops the image's leftover height
+   off the bottom instead of squashing it, same technique
+   .tooltip-card-body already uses for its own (taller) art. */
+.tooltip-card-statistical-top {
+  width: 100%;
+  background-image: url("../frontend_assets/tooltip_bg_actual_top.png");
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-color: #2a2432;
+  padding: 14px 18px;
+  box-sizing: border-box;
+  font-family: "ValveOracle", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #ffffff;
+  line-height: 1.15;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+/* Anchored to .tooltip-card-statistical (see above) rather than
+   .tooltip-card-statistical-top, so its -4px/-4px offset can poke outside
+   the top bar's corner instead of being clipped by -top's own
+   overflow:hidden. Same hover treatment as a shop item (.mod-box:hover). */
+.tooltip-statistical-help-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgb(28 28 63);
+  border: none;
+  border-radius: 4px;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  z-index: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+.tooltip-statistical-help-btn:hover {
+  transform: translateY(-2px);
+  animation: selected-rotate 3.6s ease-in-out infinite;
+  z-index: 2;
+}
+
+.tooltip-card-statistical-body {
+  width: 100%;
+  height: auto;
+  background-image: url("../frontend_assets/tooltip_bg_actual.png");
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-color: #1c1720;
+  padding: 0 18px 18px 18px;
+  box-sizing: border-box;
+  border-radius: 0 0 8px 8px;
+  /* padding-top:0 above means .tooltip-section's own margin-top:10px (the
+     first stat row's) would otherwise collapse straight through this
+     element's top edge and render as a visible gap ABOVE the card instead
+     of space inside it — overflow:hidden establishes a new block
+     formatting context so that margin stays contained here instead. */
+  overflow: hidden;
+  color: #f0ece2;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* .tooltip-section's shared margin-top:10px (see below) is scoped out
+   here rather than removed globally — ability descriptions elsewhere
+   still rely on it for spacing between multiple stacked sections, but
+   within this card it just pushed the first (and typically only visual
+   grouping of) stat row down from the now-flush top bar. */
+.tooltip-card-statistical-body .tooltip-section {
+  margin-top: 0;
+}
+
+/* Each priced stat reuses .tooltip-section/-header/-type/-body as-is (see
+   buildStatisticalStatsHtml) — only the title's color is overridden inline
+   per stat, from STATISTICAL_STAT_CATEGORY_COLORS. .tooltip-section-desc
+   itself is scoped here (not changed globally — it's shared with ability
+   descriptions elsewhere, which still need normal flowing paragraph text)
+   to lay its two child spans out as calculation-left/result-right instead
+   of one flowing sentence. */
+.tooltip-card-statistical-body .tooltip-section-desc {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tooltip-statistical-calc-expr {
+  opacity: 0.5;
+}
+
+.tooltip-statistical-calc-result {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Border/margin separating this from the priced stats above lives on the
+   wrap (not .tooltip-statistical-total itself) so it encloses both the
+   label+value row and the desc line below it as one unit. */
+.tooltip-statistical-total-wrap {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tooltip-statistical-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tooltip-statistical-total-label {
+  font-family: "ValveOracle", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+/* Its own line below the label+value row (not sharing a flex group with
+   .tooltip-statistical-total-label) so its font-size/line-height can't
+   shift where .tooltip-statistical-total-value sits vertically. */
+.tooltip-statistical-total-desc {
+  margin-top: 4px;
+  font-size: 14px;
+  font-style: italic;
+  color: #f0ece2;
+  opacity: 0.6;
+}
+
+.tooltip-statistical-total-value {
+  font-family: "ValveOracle", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #00fff5;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 /* Separate card below the main tooltip — same bottom background art as
    .tooltip-card-body, but its own standalone rounded card (all 4
    corners, not continuing .tooltip-card-top's shape) rather than a
@@ -2974,6 +3302,7 @@ body {
 }
 
 .tooltip-section-desc {
+  margin-bottom: 4px;
   font-size: 16px;
   line-height: 1.5;
   color: #ece6f0;

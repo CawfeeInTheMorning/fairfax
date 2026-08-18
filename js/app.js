@@ -308,39 +308,42 @@
       input.focus();
     });
     inputInner.appendChild(clearBtn);
-
     inputWrap.appendChild(inputInner);
-    panel.appendChild(inputWrap);
 
-    // One checkbox per distinct innate stat name (see getAllInnateStatNames)
-    // — checking any number of them shows items carrying ANY of the
-    // checked stats (combined with the text query above, which both must
-    // pass), same "OR within a facet, AND across facets" rule most
-    // faceted filter UIs use.
-    const filtersWrap = document.createElement("div");
-    filtersWrap.className = "search-filters-wrap";
-    getAllInnateStatNames().forEach((name) => {
+    // Narrows which fields the query is matched against — unchecked (the
+    // default) searches name+description+stats together; checking any
+    // number of these restricts matching to just the checked field(s) (see
+    // applySearchFilter's anyScopeActive branch).
+    const scopeToggles = document.createElement("div");
+    scopeToggles.className = "search-scope-toggles";
+    [
+      { scope: "description", label: "By Description Only" },
+      { scope: "name", label: "By Name Only" },
+      { scope: "stats", label: "By Stats Only" }
+    ].forEach(({ scope, label: labelText }) => {
       const chip = document.createElement("label");
-      chip.className = "stat-filter-chip";
+      chip.className = "search-scope-chip";
 
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.className = "stat-filter-checkbox";
-      checkbox.addEventListener("change", () => toggleStatFilter(name, checkbox.checked));
+      checkbox.className = "search-scope-checkbox";
+      checkbox.addEventListener("change", () => toggleSearchScope(scope, checkbox.checked));
       chip.appendChild(checkbox);
 
       const box = document.createElement("span");
-      box.className = "stat-filter-box";
+      box.className = "search-scope-box";
       chip.appendChild(box);
 
       const label = document.createElement("span");
-      label.className = "stat-filter-name";
-      label.textContent = name;
+      label.className = "search-scope-label";
+      label.textContent = labelText;
       chip.appendChild(label);
 
-      filtersWrap.appendChild(chip);
+      scopeToggles.appendChild(chip);
     });
-    panel.appendChild(filtersWrap);
+    inputWrap.appendChild(scopeToggles);
+
+    panel.appendChild(inputWrap);
 
     const results = document.createElement("div");
     results.className = "search-results";
@@ -603,6 +606,40 @@
     body.appendChild(desc);
     card.appendChild(body);
 
+    // Empirically-derived "statistical" souls-per-unit breakdown — its own
+    // top+body pair (tooltip_bg_actual_top.png/tooltip_bg_actual.png,
+    // same 500x115 / 500-wide-tiling dimensions as .tooltip-card-top/
+    // -body) rather than a single-image card like .tooltip-card-notes
+    // below, since it needs its own title bar. Only shown when the
+    // hovered item has at least one priced innate stat — see
+    // computeStatisticalStatsForItem/buildStatisticalStatsHtml.
+    const statistical = document.createElement("div");
+    statistical.className = "tooltip-card-statistical";
+    const statisticalTop = document.createElement("div");
+    statisticalTop.className = "tooltip-card-statistical-top";
+    statisticalTop.textContent = "Statistical Stats";
+    statistical.appendChild(statisticalTop);
+
+    // Positioned relative to `statistical` (not statisticalTop, which has
+    // overflow:hidden for its own background-crop — see style.css) so its
+    // -4px/-4px offset can actually poke outside the top bar's corner
+    // instead of being clipped by it.
+    const statisticalHelpBtn = document.createElement("button");
+    statisticalHelpBtn.type = "button";
+    statisticalHelpBtn.className = "tooltip-statistical-help-btn";
+    statisticalHelpBtn.title = "Learn more about Statistical Stats";
+    statisticalHelpBtn.textContent = "?";
+    statisticalHelpBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      setActiveBuildTab("info");
+      if (shopBuildsWrapEl) shopBuildsWrapEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    statistical.appendChild(statisticalHelpBtn);
+    const statisticalBody = document.createElement("div");
+    statisticalBody.className = "tooltip-card-statistical-body";
+    statistical.appendChild(statisticalBody);
+    card.appendChild(statistical);
+
     // Separate card-like panel below the main tooltip, only shown when
     // the hovered item has notes (see ITEM_NOTES) — same bottom
     // background art as .tooltip-card-body, styled as its own small
@@ -633,7 +670,7 @@
     viewport.appendChild(card);
     tooltipDisplayEl.appendChild(viewport);
 
-    tooltipCard = { root: card, top, name, costValue, body, desc, notes, notesList };
+    tooltipCard = { root: card, top, name, costValue, body, desc, statistical, statisticalBody, notes, notesList };
   }
 
   // Clicking an "Upgrades To/From" link: switch to that item's category if
@@ -660,6 +697,15 @@
     tooltipCard.desc.innerHTML = details
       ? buildTooltipBodyHtml(details)
       : '<div class="tooltip-placeholder">Description coming soon.</div>';
+
+    const statisticalHtml = details ? buildStatisticalStatsHtml(details) : "";
+    if (statisticalHtml) {
+      tooltipCard.statisticalBody.innerHTML = statisticalHtml;
+      tooltipCard.statistical.classList.add("visible");
+    } else {
+      tooltipCard.statisticalBody.innerHTML = "";
+      tooltipCard.statistical.classList.remove("visible");
+    }
 
     const notes = ITEM_NOTES[key];
     if (notes && notes.length) {
@@ -777,6 +823,224 @@
     const upgradesHtml = buildUpgradesHtml(details);
 
     return innateHtml + sectionsHtml + upgradesHtml;
+  }
+
+  // Matches the leading sign+number(+unit letters, e.g. "%"/"m")+whitespace
+  // of an innateStats line, e.g. "+30% Max Ammo" -> match[0]="+30% ",
+  // match[1]="+", match[2]="30", match[3]="%" — the numeric value is what's
+  // needed here (unlike the stat name alone), so the captured groups are
+  // kept instead of discarded.
+  const STATISTICAL_STAT_VALUE_RE = /^([+-])(\d+(?:\.\d+)?)([a-z%]*)\s*/i;
+
+  // STATISTICAL_STATS_TABLE keys stats by their bare name (as left over
+  // after STATISTICAL_STAT_VALUE_RE strips the leading value) plus whether
+  // the source table's Unit column was "1%" (isPercent) — the only name
+  // that appears both ways is Spirit Power (flat "1 SP" vs percent "Spirit
+  // Power %"), so isPercent is what disambiguates those two rows from each
+  // other. "vs."/"vs" and stray whitespace are normalized before comparing
+  // so "Weapon Damage vs. NPCs" (item text) matches "Weapon Damage % vs
+  // NPCs" (table) without being treated as a different stat. Deliberately
+  // NOT fuzzy beyond that — e.g. "Ability Cooldown Reduction" and
+  // "Cooldown Reduction For Charged Abilities" are left unmapped rather
+  // than guessed to alias "Cooldown Reduction %", since a qualifier can
+  // change what the stat actually measures.
+  function normalizeStatNameForMatch(name) {
+    return name
+      .replace(/vs\.?/gi, "vs")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  function findStatisticalStatRow(name, isPercent) {
+    const normalized = normalizeStatNameForMatch(name);
+    return (
+      STATISTICAL_STATS_TABLE.find(
+        (row) => row.isPercent === isPercent && normalizeStatNameForMatch(row.name) === normalized
+      ) || null
+    );
+  }
+
+  // 1-decimal precision, trimmed to a bare integer when the result lands on
+  // a whole number (e.g. 640 rather than 640.0) — matches how the souls
+  // costs read everywhere else on the site. Used for computed *results*
+  // (per-stat souls, the total) — not for the souls-per-unit rate itself,
+  // which needs its full 2-decimal source precision (see
+  // formatSoulsRateNumber) or the displayed multiplication stops matching
+  // the displayed result (e.g. "4.2 souls/%" next to a result that was
+  // actually computed from 4.21).
+  function formatSoulsNumber(n) {
+    const rounded = Math.round(n * 10) / 10;
+    return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
+  }
+
+  // Up to 2-decimal precision, trailing zeros trimmed (84.21 -> "84.21",
+  // 80.00 -> "80") — preserves STATISTICAL_STATS_TABLE's source precision
+  // for the souls-per-unit rate shown in each stat's math line.
+  function formatSoulsRateNumber(n) {
+    return String(Math.round(n * 100) / 100);
+  }
+
+  // Prices an item's always-on innateStats lines against
+  // STATISTICAL_STATS_TABLE (see items-data.js) — deliberately skips
+  // ability boxes entirely, since those are largely conditional/proc
+  // effects (e.g. Active Reload's temporary Fire Rate window) that don't
+  // reduce to a flat souls value the same way a permanent stat does. Every
+  // parseable innateStats line gets a row (even ones with no table match,
+  // or a table match whose soulsPerUnit is null) so the section can show
+  // "n/a" for stats that don't have a conversion factor yet rather than
+  // silently dropping them — only souls-summed (`souls != null`) rows
+  // count toward `total`.
+  function computeStatisticalStatsForItem(details) {
+    const rows = [];
+    let total = 0;
+    (details.innateStats || []).forEach((raw) => {
+      const text = typeof raw === "string" ? raw : raw.text;
+      const match = STATISTICAL_STAT_VALUE_RE.exec(text);
+      if (!match) return;
+
+      const rawValueText = match[0].trim();
+      const sign = match[1] === "-" ? -1 : 1;
+      const magnitude = parseFloat(match[2]);
+      const isPercent = (match[3] || "").indexOf("%") !== -1;
+      const name = text.slice(match[0].length).trim();
+
+      const row = findStatisticalStatRow(name, isPercent);
+      const priced = !!row && row.soulsPerUnit != null;
+      const souls = priced ? sign * magnitude * row.soulsPerUnit : null;
+      if (priced) total += souls;
+
+      rows.push({
+        name,
+        isPercent,
+        color: (row && STATISTICAL_STAT_CATEGORY_COLORS[row.category]) || "#ffffff",
+        rawValueText,
+        unitLabel: row ? row.unitLabel : isPercent ? "%" : "",
+        soulsPerUnit: priced ? row.soulsPerUnit : null,
+        souls
+      });
+    });
+    return { rows, total };
+  }
+
+  function buildStatisticalStatsHtml(details) {
+    const { rows, total } = computeStatisticalStatsForItem(details);
+    if (!rows.length) return "";
+
+    const sectionsHtml = rows
+      .map((r) => {
+        const title = "Statistical " + r.name + (r.isPercent ? " %" : "");
+        // Split into a calculation (left, dimmed) and its result (right,
+        // bolded) rather than one flowing sentence — see the scoped
+        // .tooltip-card-statistical-body .tooltip-section-desc flex rule
+        // in style.css, which only applies within this card (the
+        // .tooltip-section-desc class is shared with ability descriptions
+        // elsewhere, which still need normal flowing paragraph text).
+        // Stats with no conversion factor yet (r.souls === null) just show
+        // the raw stat line with no multiplication and "n/a" as the result.
+        const calcExpr =
+          r.souls != null
+            ? escapeHtml(r.rawValueText) +
+              " " +
+              escapeHtml(r.name) +
+              " &times; " +
+              formatSoulsRateNumber(r.soulsPerUnit) +
+              " souls per " +
+              escapeHtml(r.unitLabel || "1")
+            : escapeHtml(r.rawValueText) + " " + escapeHtml(r.name);
+        const calcResult = r.souls != null ? formatSoulsNumber(r.souls) + " souls" : "n/a";
+        return (
+          '<div class="tooltip-section">' +
+          '<div class="tooltip-section-header">' +
+          '<span class="tooltip-section-type" style="color:' + r.color + '">' + escapeHtml(title) + "</span>" +
+          "</div>" +
+          '<div class="tooltip-section-body">' +
+          '<div class="tooltip-section-desc">' +
+          '<span class="tooltip-statistical-calc-expr">' + calcExpr + "</span>" +
+          '<span class="tooltip-statistical-calc-result">' + calcResult + "</span>" +
+          "</div>" +
+          "</div>" +
+          "</div>"
+        );
+      })
+      .join("");
+
+    // The desc line sits below the whole label+value row (not inside a
+    // shared flex group with the label) so its own font-size/line-height
+    // can't shift where .tooltip-statistical-total-value sits vertically.
+    const totalHtml =
+      '<div class="tooltip-statistical-total-wrap">' +
+      '<div class="tooltip-statistical-total">' +
+      '<span class="tooltip-statistical-total-label">Total Statistical Value</span>' +
+      '<span class="tooltip-statistical-total-value">' + formatSoulsNumber(total) + " souls</span>" +
+      "</div>" +
+      '<div class="tooltip-statistical-total-desc">Not including passives or actives.</div>' +
+      "</div>";
+
+    return sectionsHtml + totalHtml;
+  }
+
+  // Static reference content for the Info tab's "Statistical Stats"
+  // explainer — built once (the table never changes at runtime) rather
+  // than re-rendered per tab switch, unlike the per-item tooltip section
+  // above which reads live item data.
+  function buildInfoTabHtml() {
+    const intro =
+      '<div class="info-section">' +
+      '<p class="info-section-text">' +
+      'Every item\'s tooltip includes a <strong style="color:#2f6376">Statistical Stats</strong> breakdown, ' +
+      "converting each of its stats into an empirically-derived souls value. These " +
+      "souls-per-unit numbers were solved from a linear system of equations built out of " +
+      "single and also some dual-stat items. The idea is that items are worth more than " +
+      "their raw soul cost, since the game design assumes that players will find skill " +
+      'ceilings for items. <span class="info-stat-value-na">N/A</span> means no ' +
+      "empirical value has been solved for that stat yet. All data is pulled from the " +
+      '<span style="color:#70e050">Clear Comms</span> community.' +
+      "</p>" +
+      "</div>";
+
+    // Groups rows by category in the table's own order (categories are
+    // already contiguous in STATISTICAL_STATS_TABLE — see items-data.js)
+    // rather than re-sorting, so this always matches the source table's
+    // layout without needing a separate category-order list to maintain.
+    const categories = [];
+    const byCategory = {};
+    STATISTICAL_STATS_TABLE.forEach((row) => {
+      if (!byCategory[row.category]) {
+        byCategory[row.category] = [];
+        categories.push(row.category);
+      }
+      byCategory[row.category].push(row);
+    });
+
+    const tableHtml = categories
+      .map((cat) => {
+        const color = STATISTICAL_STAT_CATEGORY_COLORS[cat] || "#ffffff";
+        const rowsHtml = byCategory[cat]
+          .map((row) => {
+            const valueHtml =
+              row.soulsPerUnit == null
+                ? '<span class="info-stat-value-na">N/A</span>'
+                : formatSoulsRateNumber(row.soulsPerUnit) + " souls";
+            return (
+              '<div class="info-stat-row">' +
+              statIconImg(row.icon, "info-stat-icon") +
+              '<span class="info-stat-name">' + escapeHtml(row.name) + (row.isPercent ? " %" : "") + "</span>" +
+              '<span class="info-stat-value">' + valueHtml + "</span>" +
+              "</div>"
+            );
+          })
+          .join("");
+        return (
+          '<div class="info-stat-category">' +
+          '<div class="info-stat-category-header" style="color:' + color + '">' + escapeHtml(cat) + "</div>" +
+          rowsHtml +
+          "</div>"
+        );
+      })
+      .join("");
+
+    return intro + '<div class="info-stat-table">' + tableHtml + "</div>";
   }
 
   // An innate stat is either a plain string, or { text, color } to tint it
@@ -947,55 +1211,68 @@
     return "<div " + attrs + ">" + iconHtml + "<span>" + escapeHtml(itemName) + "</span></div>";
   }
 
-  // ITEM_DETAILS' innateStats entries are free-text like "+8 Spirit Power"
-  // or "+0.75m Sprint Speed" (occasionally {text, color} objects instead
-  // of a plain string) — this strips the leading +/-<number><unit>?
-  // amount, leaving just the stat name itself ("Spirit Power", "Sprint
-  // Speed") to group/filter by.
-  function extractStatName(rawStat) {
-    const text = typeof rawStat === "string" ? rawStat : rawStat.text;
-    // Unit suffix is [a-z%]* (not a fixed %|m alternation) so any unit —
-    // "m" (Sprint Speed), "s" (Parry Cooldown), etc. — gets stripped
-    // along with the leading sign+number, not just the two units that
-    // happened to show up first.
-    return text.replace(/^[+-]\d+(\.\d+)?[a-z%]*\s*/i, "").trim();
+  // Concatenated ability prose for an item — the flowing description text
+  // (not stat boxes/values), used by applySearchFilter's "description"
+  // scope.
+  function itemDescriptionText(details) {
+    if (!details) return "";
+    const parts = [];
+    (details.abilities || []).forEach((section) => {
+      if (section.description) parts.push(section.description);
+      (section.extraText || []).forEach((t) => parts.push(typeof t === "string" ? t : t.text));
+    });
+    return parts.join(" ");
   }
 
-  // Every distinct innate stat name across all items, alphabetized — the
-  // checkbox list in the search panel's stat filters (buildSearchPanel).
-  function getAllInnateStatNames() {
-    const names = new Set();
-    Object.keys(ITEM_DETAILS).forEach((key) => {
-      (ITEM_DETAILS[key].innateStats || []).forEach((s) => {
-        const name = extractStatName(s);
-        if (name) names.add(name);
+  // Concatenated stat text for an item — both its always-on innateStats
+  // lines and any stat/status boxes granted by an ability (e.g. Active
+  // Reload's conditional Fire Rate/Lifesteal/Move Speed boxes) — used by
+  // applySearchFilter's "stats" scope.
+  function itemStatsText(details) {
+    if (!details) return "";
+    const parts = [];
+    (details.innateStats || []).forEach((s) => parts.push(typeof s === "string" ? s : s.text));
+    (details.abilities || []).forEach((section) => {
+      (section.boxes || []).forEach((box) => {
+        if (box.label) parts.push(box.label);
+        if (box.value) parts.push(String(box.value));
       });
     });
-    return Array.from(names).sort();
+    return parts.join(" ");
   }
 
-  let activeStatFilters = new Set();
+  // Which fields the search query is restricted to — all false (the
+  // default) means an unrestricted search across name+description+stats;
+  // checking any of these narrows matching to just the checked field(s).
+  let searchScopeName = false;
+  let searchScopeDescription = false;
+  let searchScopeStats = false;
 
-  // Empty statSet = no filter applied (every item passes).
-  function itemHasAnyStat(category, file, statSet) {
-    if (!statSet.size) return true;
-    const details = ITEM_DETAILS[category + ":" + file];
-    const stats = (details && details.innateStats) || [];
-    return stats.some((s) => statSet.has(extractStatName(s)));
-  }
-
-  function toggleStatFilter(name, checked) {
-    if (checked) activeStatFilters.add(name);
-    else activeStatFilters.delete(name);
+  function toggleSearchScope(scope, checked) {
+    if (scope === "name") searchScopeName = checked;
+    else if (scope === "description") searchScopeDescription = checked;
+    else if (scope === "stats") searchScopeStats = checked;
     applySearchFilter(searchInputEl ? searchInputEl.value : "");
   }
 
   function applySearchFilter(query) {
     const q = query.trim().toLowerCase();
+    const anyScopeActive = searchScopeName || searchScopeDescription || searchScopeStats;
+
     document.querySelectorAll(".mod-box").forEach((card) => {
-      const matchesQuery = !q || card.dataset.name.toLowerCase().includes(q);
-      const matchesStats = itemHasAnyStat(card.dataset.category, card.dataset.file, activeStatFilters);
-      card.classList.toggle("search-hidden", !(matchesQuery && matchesStats));
+      let matches = true;
+      if (q) {
+        const details = ITEM_DETAILS[card.dataset.category + ":" + card.dataset.file];
+        const nameText = card.dataset.name.toLowerCase();
+        const descText = itemDescriptionText(details).toLowerCase();
+        const statsText = itemStatsText(details).toLowerCase();
+        matches = anyScopeActive
+          ? (searchScopeName && nameText.includes(q)) ||
+            (searchScopeDescription && descText.includes(q)) ||
+            (searchScopeStats && statsText.includes(q))
+          : nameText.includes(q) || descText.includes(q) || statsText.includes(q);
+      }
+      card.classList.toggle("search-hidden", !matches);
     });
     document.querySelectorAll(".search-section").forEach((section) => {
       const hasVisibleItem = Array.from(section.querySelectorAll(".mod-box")).some(
@@ -1692,11 +1969,13 @@
 
     inner.appendChild(savedBuildsViewport);
 
-    // Info tab content — placeholder for now (explanations of topics around
-    // the site); same sibling-of-`columns` pattern as savedBuildsViewport
-    // above, hidden by default and toggled by .shop-builds.is-info-tab.
+    // Info tab content — explanations of topics around the site; same
+    // sibling-of-`columns` pattern as savedBuildsViewport above, hidden by
+    // default and toggled by .shop-builds.is-info-tab. Populated once here
+    // (not per tab-switch) since buildInfoTabHtml's content is static.
     const infoTabViewport = document.createElement("div");
     infoTabViewport.className = "info-tab-viewport";
+    infoTabViewport.innerHTML = buildInfoTabHtml();
     inner.appendChild(infoTabViewport);
     infoTabViewportEl = infoTabViewport;
 

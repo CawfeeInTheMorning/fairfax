@@ -290,6 +290,282 @@ const INVESTMENT_TIERS = [
   { souls: 28800, weapon: 115, vitality: 66, spirit: 100 }
 ];
 
+// Accent colors for the "Statistical Stats" tooltip section (see
+// buildStatisticalStatsHtml/computeStatisticalStatsForItem in app.js) —
+// one per stat category, used to color each priced stat's title so its
+// category reads at a glance across items.
+const STATISTICAL_STAT_CATEGORY_COLORS = {
+  Damage: "#d85a5a",
+  Gun: "#8fa3ad",
+  Spirit: "#b080f0",
+  Range: "#4f88e8",
+  Duration: "#d9bd4a",
+  Charges: "#e8e8e8",
+  Resistances: "#40d4d4",
+  Health: "#70e050",
+  Movement: "#7cc8ff",
+  Stamina: "#a673e8"
+};
+
+// Empirically-derived souls-per-unit values, solved from a linear system of
+// equations applied to single/dual-stat items — items are worth more than
+// their raw soul cost implies, since game design assumes players use them
+// thoughtfully. `name` matches a stat as it appears in innateStats after
+// its leading sign/number/unit is stripped (see STATISTICAL_STAT_VALUE_RE
+// in app.js); `isPercent` disambiguates the one name that appears both as
+// a flat and a percent stat (Spirit Power). `soulsPerUnit: null` means no
+// empirical value exists yet for that stat (N/A in the source data) — it's
+// simply omitted from the Statistical Stats section rather than shown
+// unpriced. `icon` is a key into STAT_ICON_FILES above — reused as-is
+// (same folder, same statIconImg helper) rather than a separate icon set,
+// since most of these stats already have a matching ability-box icon;
+// where no exact icon exists, the closest thematic match is reused (e.g.
+// Fall Off Range/Weapon Zoom both fall back to "ability-range").
+const STATISTICAL_STATS_TABLE = [
+  { name: "Melee Damage", isPercent: true, category: "Damage", unitLabel: "%", soulsPerUnit: null, icon: "melee-damage" },
+  { name: "Weapon Damage", isPercent: true, category: "Damage", unitLabel: "%", soulsPerUnit: 84.21, icon: "weapon-damage" },
+  {
+    name: "Weapon Damage vs NPCs",
+    isPercent: true,
+    category: "Damage",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "weapon-damage"
+  },
+
+  { name: "Max Ammo", isPercent: true, category: "Gun", unitLabel: "%", soulsPerUnit: 4.21, icon: "ammo" },
+  { name: "Fire Rate", isPercent: true, category: "Gun", unitLabel: "%", soulsPerUnit: 88.89, icon: "fire-rate" },
+  { name: "Bullet Velocity", isPercent: true, category: "Gun", unitLabel: "%", soulsPerUnit: 2.11, icon: "bullet-velocity" },
+
+  { name: "Spirit Power", isPercent: false, category: "Spirit", unitLabel: "SP", soulsPerUnit: 80.0, icon: "spirit-power" },
+  {
+    name: "Spirit Power",
+    isPercent: true,
+    category: "Spirit",
+    unitLabel: "%",
+    // Solved from Boundless Spirit (spirit:Boundless_Spirit.png, 6400
+    // souls: +15% Spirit Power, +30 Spirit Power, +75 Bonus Health, +4 Out
+    // of Combat Regen) — the only item using this percent-variant stat, so
+    // unlike the rest of this table there's no second item to cross-check
+    // the derived rate against: 6400 - (30*80 + 75*3.81 + 4*106.67) = 15 * x
+    // -> x = 219.17.
+    soulsPerUnit: 219.17,
+    icon: "spirit-power"
+  },
+  {
+    name: "Imbued Spirit Power",
+    isPercent: false,
+    category: "Spirit",
+    unitLabel: "",
+    soulsPerUnit: null,
+    icon: "imbue"
+  },
+
+  { name: "Ability Range", isPercent: true, category: "Range", unitLabel: "%", soulsPerUnit: 80.99, icon: "ability-range" },
+  {
+    name: "Fall Off Range",
+    isPercent: true,
+    category: "Range",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "ability-range"
+  },
+  { name: "Weapon Zoom", isPercent: true, category: "Range", unitLabel: "%", soulsPerUnit: null, icon: "ability-range" },
+
+  {
+    name: "Ability Duration",
+    isPercent: true,
+    category: "Duration",
+    unitLabel: "%",
+    soulsPerUnit: 93.97,
+    icon: "ability-duration"
+  },
+  {
+    name: "Cooldown Reduction",
+    isPercent: true,
+    category: "Duration",
+    unitLabel: "%",
+    soulsPerUnit: 138.67,
+    icon: "ability-cooldown"
+  },
+
+  {
+    name: "Bonus Ability Charges",
+    isPercent: false,
+    category: "Charges",
+    unitLabel: "",
+    soulsPerUnit: null,
+    icon: "bonus-ability-charges"
+  },
+  {
+    name: "Bonus Spirit Power for Charged Abilities",
+    isPercent: false,
+    category: "Charges",
+    unitLabel: "",
+    soulsPerUnit: null,
+    icon: "charge-up"
+  },
+  {
+    name: "Faster Time Between Charges",
+    isPercent: true,
+    category: "Charges",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "build-up"
+  },
+
+  {
+    name: "Melee Resist",
+    isPercent: true,
+    category: "Resistances",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "damage-resistance"
+  },
+  {
+    name: "Spirit Resist",
+    isPercent: true,
+    category: "Resistances",
+    unitLabel: "%",
+    soulsPerUnit: 77.04,
+    icon: "damage-resistance"
+  },
+  {
+    name: "Debuff Resist",
+    isPercent: true,
+    category: "Resistances",
+    unitLabel: "%",
+    soulsPerUnit: 64.0,
+    icon: "debuff-resist"
+  },
+  {
+    name: "Slow Resist",
+    isPercent: true,
+    category: "Resistances",
+    unitLabel: "%",
+    soulsPerUnit: 32.0,
+    icon: "movement-slow"
+  },
+  {
+    name: "Bullet Resist",
+    isPercent: true,
+    category: "Resistances",
+    unitLabel: "%",
+    soulsPerUnit: 71.11,
+    icon: "damage-resistance"
+  },
+  {
+    name: "Bullet Resist Shred",
+    isPercent: true,
+    category: "Resistances",
+    unitLabel: "%",
+    soulsPerUnit: 78.35,
+    icon: "damage-amplification"
+  },
+  {
+    name: "Bullet Resist vs NPCs",
+    isPercent: true,
+    category: "Resistances",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "damage-resistance"
+  },
+
+  { name: "Bonus Health", isPercent: false, category: "Health", unitLabel: "HP", soulsPerUnit: 3.81, icon: "health" },
+  { name: "Base Health", isPercent: true, category: "Health", unitLabel: "%", soulsPerUnit: null, icon: "health" },
+  {
+    name: "Health Regen",
+    isPercent: false,
+    category: "Health",
+    unitLabel: "/s",
+    soulsPerUnit: 231.11,
+    icon: "health"
+  },
+  {
+    name: "Spirit Lifesteal",
+    isPercent: true,
+    category: "Health",
+    unitLabel: "%",
+    soulsPerUnit: 65.64,
+    icon: "lifesteal"
+  },
+  {
+    name: "Bullet Lifesteal",
+    isPercent: true,
+    category: "Health",
+    unitLabel: "%",
+    soulsPerUnit: 96.7,
+    icon: "lifesteal"
+  },
+  {
+    name: "Healing Effectiveness",
+    isPercent: true,
+    category: "Health",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "health"
+  },
+
+  {
+    name: "Move Speed",
+    isPercent: false,
+    category: "Movement",
+    unitLabel: "m/s",
+    soulsPerUnit: 293.33,
+    icon: "move-speed"
+  },
+  {
+    name: "Sprint Speed",
+    isPercent: false,
+    category: "Movement",
+    unitLabel: "m/s",
+    soulsPerUnit: 293.33,
+    icon: "move-speed"
+  },
+  {
+    name: "Out of Combat Regen",
+    isPercent: false,
+    category: "Movement",
+    unitLabel: "/s",
+    soulsPerUnit: 106.67,
+    icon: "health"
+  },
+  {
+    name: "Slide Distance",
+    isPercent: true,
+    category: "Movement",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "slide-distance"
+  },
+  {
+    name: "Air Jump/Dash Distance",
+    isPercent: true,
+    category: "Movement",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "dash-distance"
+  },
+  {
+    name: "Heavy Melee Distance",
+    isPercent: true,
+    category: "Movement",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "melee-distance"
+  },
+
+  { name: "Stamina", isPercent: false, category: "Stamina", unitLabel: "", soulsPerUnit: null, icon: "stamina" },
+  {
+    name: "Stamina Recovery",
+    isPercent: true,
+    category: "Stamina",
+    unitLabel: "%",
+    soulsPerUnit: null,
+    icon: "stamina"
+  }
+];
+
 /*
  * Rich tooltip content, filled in later from item_data.xlsx. Keyed as
  * "category:File_Name.png". Shape per entry:
