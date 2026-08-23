@@ -415,7 +415,7 @@ body {
 }
 
 .build-tab.is-info {
-  background-color: #2f6376;
+  background-color: #1f294f;
 }
 
 .build-tab:not(.active):hover {
@@ -656,6 +656,14 @@ body {
   padding: 8px 24px 24px;
   min-height: 552px;
   box-sizing: border-box;
+  /* Query container for the cqw-based scale on .info-tab-content and
+     .saved-builds-hero-panel-content below (and .saved-builds-hero-badge,
+     which doesn't need a transform of its own but still reads the same
+     ratio for its width/height/font-size) — nothing here needs its own
+     size to come from content, so containment is safe; more specific
+     containers already declared on descendants (.build-section-actions-row,
+     .shop-builds-left/-right) still win for their own subtrees regardless. */
+  container-type: inline-size;
 }
 
 /* Save Build/search/Add Section/Clear live in a header that spans the
@@ -741,14 +749,21 @@ body {
 .investment-bars-header {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  /* Scaled by .shop-builds-right's own local ratio (that column already
+     establishes its own query container — see container-type:inline-size
+     on it above — so 100cqw here means ITS width, not .shop-builds-inner's)
+     rather than staying pinned at native size while the column around it
+     shrinks/grows. Plain padding/font-size (not a scale() transform) since
+     this header is meant to keep spanning the column's actual width, not
+     render at a fixed native width and get scaled as a block. */
+  padding: calc(8px * (100cqw / var(--investment-bars-native-w))) calc(12px * (100cqw / var(--investment-bars-native-w)));
   background-color: rgb(15 13 19);
   border-bottom: 1px solid rgba(240, 236, 226, 0.15);
 }
 
 .investment-bars-title {
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 16px;
+  font-size: calc(16px * (100cqw / var(--investment-bars-native-w)));
   font-weight: 700;
   letter-spacing: 1px;
   color: #f2ead9;
@@ -1065,13 +1080,16 @@ body {
   padding: 10px 28px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 15px;
-  font-weight: 700;
   letter-spacing: 1px;
   color: #f2ead9;
   background-color: transparent;
   border: none;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.build-add-section-btn {
+  font-weight: 400;
 }
 
 /* Separate, purpose-sized textures (rather than one shared image
@@ -1099,6 +1117,7 @@ body {
   background-size: auto 100%;
   background-position: center;
   width: 108px;
+  font-size: 16px;
 }
 
 .build-add-section-btn:hover,
@@ -1381,11 +1400,29 @@ body {
 
 .info-tab-viewport {
   display: none;
+  position: relative;
   width: 100%;
+  /* Height is set from JS (syncInfoTabViewportHeight) to
+     .info-tab-content's actual post-scale rendered height, same
+     relationship as .build-sections-viewport/.build-sections-container. */
 }
 
 .shop-builds.is-info-tab .info-tab-viewport {
   display: block;
+}
+
+/* Built at native size and scaled down as one rigid unit — same technique
+   as .build-sections-container — so it shrinks/grows in step with the
+   rest of .shop-builds-inner (see container-type:inline-size on it)
+   instead of staying pinned at native size while its surroundings scale
+   independently. */
+.info-tab-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--shop-builds-content-native-w);
+  transform: scale(calc(100cqw / var(--shop-builds-content-native-w)));
+  transform-origin: top left;
 }
 
 /* ---------- info tab content (Statistical Stats explainer) ---------- */
@@ -1398,7 +1435,7 @@ body {
   margin: 36px 0 20px;
   font-size: 18px;
   line-height: 1.6;
-  color: #0f0d13;
+  color: #130601;
 }
 
 .info-stat-value-na {
@@ -1413,7 +1450,9 @@ body {
 }
 
 .info-stat-category {
-  background-color: rgb(15 13 19);
+  background-image: url("../frontend_assets/statistical_stats_tooltip_bg.png");
+  background-size: cover;
+  background-position: top center;
   border-radius: 8px;
   padding: 14px 16px;
   box-sizing: border-box;
@@ -1451,25 +1490,25 @@ body {
 
 .info-stat-name {
   font-size: 16px;
-  color: #f0ece2;
+  color: #000000;
 }
 
 .info-stat-value {
   min-width: 70px;
   font-size: 16px;
   font-weight: 700;
-  color: #00fff5;
+  color: #c1ad8e;
   text-align: right;
   white-space: nowrap;
 }
 
 .saved-builds-empty {
-  padding: 24px;
+  padding: calc(24px * (100cqw / var(--shop-builds-content-native-w)));
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 16px;
+  font-size: calc(16px * (100cqw / var(--shop-builds-content-native-w)));
   font-weight: 700;
-  color: #f2ead9;
-  opacity: 0.4;
+  color: #000000;
+  opacity: 1;
   text-align: center;
 }
 
@@ -1570,8 +1609,14 @@ body {
   right: 0;
   transform: translate(20%, 20%);
   z-index: 3;
-  width: 30px;
-  height: 30px;
+  /* Scaled by the same site-wide ratio everything else in .shop-builds
+     scales by (see container-type:inline-size on .shop-builds-inner),
+     rather than staying pinned at a fixed size while its surroundings
+     shrink/grow. Sized via plain width/height/font-size (not a nested
+     scale() transform) so translate(20%, 20%) above keeps resolving
+     against this box's own current size with no extra math needed. */
+  width: calc(30px * (100cqw / var(--shop-builds-content-native-w)));
+  height: calc(30px * (100cqw / var(--shop-builds-content-native-w)));
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -1579,7 +1624,7 @@ body {
   background-color: rgb(15 13 19);
   border-radius: 3px;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 20px;
+  font-size: calc(20px * (100cqw / var(--shop-builds-content-native-w)));
   font-weight: 700;
   color: #f2ead9;
   pointer-events: none;
@@ -1595,14 +1640,20 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  /* This panel is a fluid flex item (its width comes from flex layout,
+     not a fixed native design width), so its fixed-px sub-properties are
+     scaled individually via calc() here and below — same site-wide ratio
+     as .saved-builds-hero-badge — rather than wrapped as one native-width
+     block and transform:scale'd (the technique .info-tab-content uses),
+     which needs a stable native width to scale from. */
+  gap: calc(12px * (100cqw / var(--shop-builds-content-native-w)));
 }
 
 .saved-builds-hero-panel-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-bottom: 10px;
+  padding-bottom: calc(10px * (100cqw / var(--shop-builds-content-native-w)));
   border-bottom: 1px solid rgba(240, 236, 226, 0.15);
 }
 
@@ -1615,15 +1666,15 @@ body {
   align-items: center;
   justify-content: center;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 16px;
+  font-size: calc(16px * (100cqw / var(--shop-builds-content-native-w)));
   font-weight: 700;
   letter-spacing: 0.5px;
   color: #f2ead9;
 }
 
 .saved-builds-hero-panel-name img {
-  height: 80px;
-  width: 180px;
+  height: calc(80px * (100cqw / var(--shop-builds-content-native-w)));
+  width: calc(180px * (100cqw / var(--shop-builds-content-native-w)));
   object-fit: contain;
   display: block;
 }
@@ -1631,17 +1682,17 @@ body {
 .saved-builds-hero-build-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: calc(6px * (100cqw / var(--shop-builds-content-native-w)));
 }
 
 .saved-builds-hero-build-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 50px;
-  margin-top: 10px;
-  padding: 0 34px 0 12px;
+  gap: calc(8px * (100cqw / var(--shop-builds-content-native-w)));
+  height: calc(50px * (100cqw / var(--shop-builds-content-native-w)));
+  margin-top: calc(10px * (100cqw / var(--shop-builds-content-native-w)));
+  padding: 0 calc(34px * (100cqw / var(--shop-builds-content-native-w))) 0 calc(12px * (100cqw / var(--shop-builds-content-native-w)));
   box-sizing: border-box;
   background-color: transparent;
   background-image: url("../frontend_assets/shop_header_extra_large.png");
@@ -1665,8 +1716,8 @@ body {
    what was asked for, not because the icon could ever actually differ
    row to row within a single hero's build list. */
 .saved-builds-hero-build-mini-icon {
-  width: 54px;
-  height: 54px;
+  width: calc(54px * (100cqw / var(--shop-builds-content-native-w)));
+  height: calc(54px * (100cqw / var(--shop-builds-content-native-w)));
   flex-shrink: 0;
   object-fit: contain;
 }
@@ -1684,7 +1735,7 @@ body {
   flex: 1;
   min-width: 0;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 16px;
+  font-size: calc(16px * (100cqw / var(--shop-builds-content-native-w)));
   color: #f2ead9;
   white-space: nowrap;
   overflow: hidden;
@@ -1698,7 +1749,7 @@ body {
 .saved-builds-hero-build-date {
   flex-shrink: 0;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: 12px;
+  font-size: calc(12px * (100cqw / var(--shop-builds-content-native-w)));
   color: #f2ead9;
   opacity: 0.5;
   white-space: nowrap;
@@ -1707,10 +1758,10 @@ body {
 .saved-builds-hero-build-delete {
   position: absolute;
   top: 50%;
-  right: 8px;
+  right: calc(8px * (100cqw / var(--shop-builds-content-native-w)));
   transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
+  width: calc(18px * (100cqw / var(--shop-builds-content-native-w)));
+  height: calc(18px * (100cqw / var(--shop-builds-content-native-w)));
   border-radius: 3px;
   background-image: url("../frontend_assets/icon_close.svg");
   background-size: 10px 10px;
@@ -2097,6 +2148,25 @@ body {
   position: relative;
 }
 
+/* Moves the WHOLE card (mod-box + remove-btn together) as one rigid unit
+   on hover, rather than relying on two separate elements each running
+   their own independent instance of the same @keyframes animation and
+   trusting them to stay in sync — a single shared transform on their
+   common ancestor guarantees the button can't visually drift from the
+   icon it's attached to. .mod-box:hover's own transform is neutralized
+   right below so it doesn't ALSO fire and compound with this one when the
+   pointer is directly over the icon itself. */
+.build-item-card:hover {
+  transform: translateY(-2px);
+  animation: selected-rotate 3.6s ease-in-out infinite;
+  z-index: 2;
+}
+
+.build-item-card .mod-box:hover {
+  transform: none;
+  animation: none;
+}
+
 .build-item-remove-btn {
   /* Same black-square-badge treatment as .mod-box-add-badge. */
   position: absolute;
@@ -2127,14 +2197,6 @@ body {
 
 .build-item-card:hover .build-item-remove-btn {
   display: flex;
-  /* .build-item-remove-btn is positioned relative to .build-item-card (the
-     static wrapper), while .mod-box itself is what actually moves on
-     hover (see .mod-box:hover) — without this, the button stays put while
-     the icon lifts/sways away from it. Same transform+animation as
-     .mod-box:hover, triggered by the same :hover state, keeps both moving
-     in lockstep so the button reads as attached to the icon. */
-  transform: translateY(-2px);
-  animation: selected-rotate 3.6s ease-in-out infinite;
 }
 
 .mod-box.used {
@@ -2460,8 +2522,8 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   /* mask (not background-image) so the SVG can be tinted to an exact
      color via background-color, rather than only inverted/dimmed. */
   background-color: #f2ead9;
@@ -2474,6 +2536,12 @@ body {
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   opacity: 0;
+  /* Some engines lag repainting a masked pseudo-element when only a
+     sibling's :checked state changes (no geometry change of its own to
+     otherwise trigger a repaint) — an explicit transition forces it to be
+     treated as continuously animated/repainted rather than a static
+     snap-state change. */
+  transition: opacity 0.1s ease;
 }
 
 .search-scope-checkbox:checked ~ .search-scope-box::after {

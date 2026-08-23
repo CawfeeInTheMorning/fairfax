@@ -153,6 +153,7 @@
   let savedBuildsHeroesEl = null;
   let savedBuildsHeroPanelEl = null;
   let infoTabViewportEl = null;
+  let infoTabContentEl = null;
   let selectedSavedHeroSlug = null;
   let savedBuildsSearchInputEl = null;
   let savedBuildsSearchQuery = "";
@@ -254,6 +255,10 @@
     // toggles above can't reach it directly (no combinator connects them)
     // — toggled here instead.
     if (shopGraphsEl) shopGraphsEl.classList.toggle("is-hidden", tab === "saves" || tab === "info");
+    // .info-tab-viewport is display:none until this toggle takes effect,
+    // so its scaled content couldn't be measured before now — sync it
+    // right as it becomes visible instead of waiting for the next resize.
+    if (tab === "info") updateInfoTabViewportHeight();
   }
 
   function buildPanels() {
@@ -988,7 +993,7 @@
     const intro =
       '<div class="info-section">' +
       '<p class="info-section-text">' +
-      'Every item\'s tooltip includes a <strong style="color:#2f6376">Statistical Stats</strong> breakdown, ' +
+      'Every item\'s tooltip includes a <strong style="color:#d8be96">Statistical Stats</strong> breakdown, ' +
       "converting each of its stats into an empirically-derived souls value. These " +
       "souls-per-unit numbers were solved from a linear system of equations built out of " +
       "single and also some dual-stat items. The idea is that items are worth more than " +
@@ -1973,11 +1978,21 @@
     // sibling-of-`columns` pattern as savedBuildsViewport above, hidden by
     // default and toggled by .shop-builds.is-info-tab. Populated once here
     // (not per tab-switch) since buildInfoTabHtml's content is static.
+    // .info-tab-content is a fixed-native-width, transform:scale'd block
+    // (same technique as .build-sections-container) so it scales down in
+    // step with the rest of the site instead of staying pinned at native
+    // size — .info-tab-viewport reserves its actual post-scale footprint
+    // (see syncInfoTabViewportHeight) so normal-flow content below it
+    // isn't overlapped or left with a gap.
     const infoTabViewport = document.createElement("div");
     infoTabViewport.className = "info-tab-viewport";
-    infoTabViewport.innerHTML = buildInfoTabHtml();
+    const infoTabContent = document.createElement("div");
+    infoTabContent.className = "info-tab-content";
+    infoTabContent.innerHTML = buildInfoTabHtml();
+    infoTabViewport.appendChild(infoTabContent);
     inner.appendChild(infoTabViewport);
     infoTabViewportEl = infoTabViewport;
+    infoTabContentEl = infoTabContent;
 
     shopBuildsEl.appendChild(inner);
 
@@ -3216,6 +3231,7 @@
       updateInvestmentBarsViewportHeight();
       updateInvestmentBarsTopAlign();
       updateAddSectionBtnAvailability();
+      updateInfoTabViewportHeight();
     }
     const ro = new ResizeObserver(update);
     ro.observe(shopEl);
@@ -3258,6 +3274,22 @@
     if (!buildSectionsViewportEl || !sectionsContainerEl) return;
     const h = sectionsContainerEl.getBoundingClientRect().height;
     buildSectionsViewportEl.style.height = h + "px";
+  }
+
+  // Same relationship as updateBuildSectionsViewportHeight above, for
+  // .info-tab-content (also a fixed-native-width, transform:scale'd
+  // block). Only measures anything while the info tab is actually visible
+  // — .info-tab-viewport is display:none otherwise, so
+  // getBoundingClientRect() would just read 0 and wrongly zero out the
+  // reserved height for when the tab becomes visible again; callers that
+  // can't be sure the tab is active (e.g. the resize-driven sync below)
+  // rely on setActiveBuildTab calling this again right when it switches
+  // to "info" instead.
+  function updateInfoTabViewportHeight() {
+    if (!infoTabViewportEl || !infoTabContentEl) return;
+    if (getComputedStyle(infoTabViewportEl).display === "none") return;
+    const h = infoTabContentEl.getBoundingClientRect().height;
+    infoTabViewportEl.style.height = h + "px";
   }
 
   // Predicts whether one more default-size section would still fit inside
