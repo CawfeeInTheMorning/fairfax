@@ -84,6 +84,99 @@
     name: HERO_NAME_OVERRIDES[slug] || slug.charAt(0).toUpperCase() + slug.slice(1),
   }));
 
+  // Release date (YYYY-MM-DD) per hero — sorts/buckets the Heroes tab's 4
+  // year-quadrants (see buildHeroPanel). Source: the hero ID list, with
+  // the leading numeric ID and trailing "Update: ..."/patch-name text
+  // both dropped as irrelevant here.
+  const HERO_RELEASE_DATES = {
+    abrams: "2024-04-24",
+    bebop: "2024-04-24",
+    dynamo: "2024-04-24",
+    grey_talon: "2024-04-24",
+    haze: "2024-04-24",
+    infernus: "2024-04-24",
+    ivy: "2024-04-24",
+    kelvin: "2024-04-24",
+    lady_geist: "2024-04-24",
+    lash: "2024-04-24",
+    mcginnis: "2024-04-24",
+    mo_and_krill: "2024-04-24",
+    paradox: "2024-04-24",
+    pocket: "2024-04-24",
+    seven: "2024-04-24",
+    vindicta: "2024-04-24",
+    warden: "2024-04-24",
+    wraith: "2024-04-24",
+    yamato: "2024-04-24",
+    viscous: "2024-08-01",
+    shiv: "2024-08-15",
+    mirage: "2024-09-26",
+    calico: "2025-01-17",
+    holliday: "2025-01-17",
+    sinclair: "2025-01-17",
+    vyper: "2025-01-17",
+    mina: "2025-08-18",
+    billy: "2025-08-20",
+    doorman: "2025-08-22",
+    paige: "2025-08-25",
+    drifter: "2025-08-27",
+    victor: "2025-08-29",
+    rem: "2026-01-26",
+    graves: "2026-01-29",
+    silver_human: "2026-02-02",
+    venator: "2026-02-05",
+    celeste: "2026-02-09",
+    apollo: "2026-02-12"
+  };
+
+  // Prototype hero tooltip content, keyed by slug — pulled from each
+  // hero's deadlock.wiki infobox (see showHeroTooltipDisplay). Only
+  // Abrams is filled in so far, as a tester for the format; hovering a
+  // hero with no entry here just shows nothing (see the HERO_DETAILS[slug]
+  // guard in showHeroTooltipDisplay) rather than a broken/empty tooltip.
+  const HERO_DETAILS = {
+    abrams: {
+      tags: ["Tank", "Brawler", "Bull-Headed"],
+      info: {
+        pronouns: "He/Him",
+        voiceActor: "Samoa Joe",
+        internalNames: "Atlas; Bull"
+      },
+      // From deadlock.wiki's own .weaponcard-container widget (a distinct
+      // block under the "Weapon" heading, separate from the Weapon Stats
+      // infobox table above) — name, playstyle tags, headline DPS, falloff
+      // range, and the short reload-behavior note shown on its bottom bar.
+      weapon: {
+        name: "Case Closed",
+        tags: ["Spreadshot", "Close Range"],
+        damagePerSecond: "51",
+        falloffRange: "17m → 40m",
+        notes: "Reloads single shells at a time. Can be interrupted"
+      },
+      weaponStats: [
+        { label: "Damage Per Second", value: "51.4", icon: "damage-per-second-icon.png" },
+        { label: "Bullet Damage", value: "3.6+0.1", icon: "bullet-damage-icon.png" },
+        { label: "Pellets per shot", value: "9", icon: "fire-rate-icon.png" },
+        { label: "Ammo", value: "9", icon: "ammo-icon.png" },
+        { label: "Bullets per sec", value: "1.59", icon: "fire-rate-icon.png" },
+        { label: "Reload Time", value: "0.353s", icon: "reload-time-icon.png" },
+        { label: "Bullet Velocity", value: "610m/s", icon: "bullet-velocity-icon.png" },
+        { label: "Light Melee", value: "50+1.74", icon: "melee-damage-icon.png" },
+        { label: "Heavy Melee", value: "116+4.03", icon: "melee-damage-icon.png" }
+      ],
+      vitalityStats: [
+        { label: "Health", value: "800+49", icon: "health-icon.png" },
+        { label: "Health Regen", value: "1.5", icon: "health-icon.png" },
+        { label: "Move Speed", value: "6.4m/s", icon: "move-speed-icon.png" },
+        { label: "Sprint Speed", value: "1.6m/s", icon: "move-speed-icon.png" },
+        { label: "Dash Speed", value: "13.9m/s", icon: "stamina-icon.png" },
+        { label: "Stamina", value: "3", icon: "stamina-icon.png" },
+        { label: "Stamina Cooldown", value: "4.5s", icon: "stamina-icon.png" }
+      ],
+      spiritStats: [{ label: "Spirit Power", value: "0+1.1", icon: "spirit-power-icon.png" }]
+    }
+  };
+
   // hero_icons/hero_mini and hero_icons/hero_logos mostly follow the same
   // <slug>_mini.png / <slug>_logo.svg pattern as hero_icons/ itself, but
   // both use "silver_mini.png"/"silver_logo.svg" rather than
@@ -99,6 +192,10 @@
 
   function heroLogoFile(hero) {
     return "hero_icons/hero_logos/" + (HERO_ASSET_SLUG_OVERRIDES[hero.slug] || hero.slug) + "_logo.svg";
+  }
+
+  function heroWeaponFile(hero) {
+    return "hero_icons/hero_weapons/" + (HERO_ASSET_SLUG_OVERRIDES[hero.slug] || hero.slug) + "_weapon.png";
   }
 
   // Mirrors the .mod-box / .build-section-items sizing in style.css (80x125
@@ -134,7 +231,9 @@
 
   let searchInputEl = null;
   let tooltipCard = null;
+  let heroTooltipCard = null;
   let selectedCard = null;
+  let selectedHeroCard = null; // { el, hero } — separate from selectedCard since hero cards aren't .mod-box items
   let activeCategory = "weapon";
   let buildState = null;
   let sectionsContainerEl = null;
@@ -162,6 +261,8 @@
   let saveBuildHeroListEl = null;
   let saveBuildModalHero = null; // staged hero pick while the modal is open — only committed to buildState on confirm
   let newBuildConfirmModalEl = null;
+  let deleteBuildConfirmModalEl = null;
+  let pendingDeleteBuildId = null;
   let savedBuilds = []; // [{id, name, hero, sections, savedAt}] — see loadSavedBuilds/saveCurrentBuildToLibrary
   let dragPayload = null; // set on dragstart, read on drop (dataTransfer.getData is unreliable during dragover in some browsers)
   let lastSectionPreviewIndex = null;
@@ -182,6 +283,21 @@
       btn.addEventListener("click", () => setActiveCategory(cat));
       tabsEl.appendChild(btn);
     });
+
+    // Heroes isn't a CATEGORY_ORDER entry — it doesn't carry SHOP_DATA-shaped
+    // item/tier data, so it deliberately sits outside the item-category
+    // machinery (search results, investment tracking, build sections) that
+    // loop drives. setActiveCategory's tab/panel toggling is already
+    // generic (matches on dataset.category/#panel-<cat> alone), so it
+    // needs no changes to support this — same reasoning "search" already
+    // relies on.
+    const heroBtn = document.createElement("button");
+    heroBtn.className = "category-tab is-hero";
+    heroBtn.dataset.category = "hero";
+    heroBtn.setAttribute("aria-label", "Heroes");
+    heroBtn.innerHTML = '<img class="tab-icon" src="frontend_assets/shop_icon_hero.png" alt="">';
+    heroBtn.addEventListener("click", () => setActiveCategory("hero"));
+    tabsEl.appendChild(heroBtn);
 
     searchTab.addEventListener("click", () => setActiveCategory("search"));
   }
@@ -282,6 +398,143 @@
     setActiveCategory(activeCategory);
   }
 
+  // Quadrant order matches the confirmed top-left/top-right/bottom-left/
+  // bottom-right mapping (see .hero-quadrant.year-* in style.css) — 2025,
+  // 2024, 2026, 2027. "2027" is a placeholder bucket for future releases
+  // (no heroes in it yet) rather than a real year with data behind it.
+  const HERO_YEAR_ORDER = ["2025", "2024", "2026", "2027"];
+
+  function heroReleaseYear(slug) {
+    const date = HERO_RELEASE_DATES[slug];
+    if (!date) return "2027";
+    const year = date.slice(0, 4);
+    return year >= "2027" ? "2027" : year;
+  }
+
+  // Same 4-quadrant grid structure as #shop-panels' own .tier-grid
+  // (buildPanels/buildTierQuadrant above), just keyed by release year
+  // instead of soul-cost tier, and living outside CATEGORY_ORDER/SHOP_DATA
+  // entirely since heroes aren't shop items — see buildTabs' comment on
+  // why "hero" isn't a CATEGORY_ORDER entry. No tooltip/selection/add-to-
+  // build wiring yet on the cards themselves (see buildHeroCard) — this is
+  // just the card grid, sorted by release date within each quadrant.
+  function buildHeroPanel() {
+    const panel = document.createElement("div");
+    panel.className = "shop-panel category-hero";
+    panel.id = "panel-hero";
+    panel.style.backgroundImage = 'url("frontend_assets/shop_bg_heros.png")';
+
+    const heroGrid = document.createElement("div");
+    heroGrid.className = "hero-grid";
+
+    const byYear = {};
+    HERO_YEAR_ORDER.forEach((y) => (byYear[y] = []));
+    HERO_LIST.forEach((hero) => {
+      byYear[heroReleaseYear(hero.slug)].push(hero);
+    });
+    HERO_YEAR_ORDER.forEach((y) => {
+      byYear[y].sort((a, b) => (HERO_RELEASE_DATES[a.slug] || "").localeCompare(HERO_RELEASE_DATES[b.slug] || ""));
+    });
+
+    HERO_YEAR_ORDER.forEach((year) => {
+      const quad = document.createElement("div");
+      quad.className = "hero-quadrant year-" + year;
+
+      const container = document.createElement("div");
+      container.className = "hero-container";
+      byYear[year].forEach((hero) => container.appendChild(buildHeroCard(hero)));
+      quad.appendChild(container);
+
+      heroGrid.appendChild(quad);
+    });
+
+    panel.appendChild(heroGrid);
+    shopEl.appendChild(panel);
+  }
+
+  // Same card shell as buildItemCard (background art + paper texture +
+  // icon + name label), under dedicated hero-card-* classes rather than
+  // reusing .mod-box/.card-background/etc. directly — those classes are
+  // swept up by item-specific machinery elsewhere (applySearchFilter's
+  // document.querySelectorAll(".mod-box"), .shop-panel.dimming, drag/drop,
+  // the tooltip system), none of which apply to heroes. Deliberately no
+  // click/hover-tooltip wiring yet, per "we'll add tooltips later."
+  function buildHeroCard(hero) {
+    const year = heroReleaseYear(hero.slug);
+
+    const card = document.createElement("div");
+    card.className = "hero-card";
+    card.dataset.slug = hero.slug;
+
+    const cardBg = document.createElement("div");
+    cardBg.className = "hero-card-background";
+    cardBg.style.backgroundImage = 'url("frontend_assets/card_hero_' + year + '.png")';
+    card.appendChild(cardBg);
+
+    const paperIdx = ((hero.name.length + parseInt(year, 10)) % 3) + 1;
+    const paper = document.createElement("div");
+    paper.className = "hero-card-paper";
+    paper.style.backgroundImage = 'url("frontend_assets/shop_paper_' + paperIdx + '.png")';
+    card.appendChild(paper);
+
+    const iconContainer = document.createElement("div");
+    iconContainer.className = "hero-card-icon-container";
+    const icon = document.createElement("div");
+    icon.className = "hero-card-icon";
+    icon.style.backgroundImage = 'url("hero_icons/' + hero.file + '")';
+    iconContainer.appendChild(icon);
+    card.appendChild(iconContainer);
+
+    const nameContainer = document.createElement("div");
+    nameContainer.className = "hero-card-name-container";
+    const name = document.createElement("div");
+    name.className = "hero-card-name";
+    name.textContent = hero.name;
+    nameContainer.appendChild(name);
+    card.appendChild(nameContainer);
+
+    const selectedOverlay = document.createElement("div");
+    selectedOverlay.className = "hero-card-selected-overlay";
+    card.appendChild(selectedOverlay);
+
+    // Same hover/select behavior as a shop item card (buildItemCard) —
+    // click to pin the tooltip and lock hover to just this card, click
+    // again to deselect. Prototype tooltip content only shows anything
+    // for heroes with a HERO_DETAILS entry (currently just Abrams); see
+    // showHeroTooltipDisplay's own guard for the rest — selection/dimming
+    // still works on cards with no data yet, just with an empty tooltip.
+    card.addEventListener("mouseenter", () => {
+      if (selectedHeroCard && selectedHeroCard.el !== card) return;
+      showHeroTooltipDisplay(hero);
+      card.classList.add("is-hovered");
+      updatePanelDimming(card.closest(".shop-panel"));
+    });
+    card.addEventListener("mouseleave", () => {
+      card.classList.remove("is-hovered");
+      updatePanelDimming(card.closest(".shop-panel"));
+      if (selectedHeroCard) {
+        showHeroTooltipDisplay(selectedHeroCard.hero);
+      } else {
+        hideHeroTooltipDisplay();
+      }
+    });
+    card.addEventListener("click", () => {
+      if (selectedHeroCard && selectedHeroCard.el === card) {
+        deselectHeroCard();
+        hideHeroTooltipDisplay();
+        updatePanelDimming(card.closest(".shop-panel"));
+        return;
+      }
+      if (selectedHeroCard) selectedHeroCard.el.classList.remove("selected");
+      card.classList.add("selected");
+      selectedHeroCard = { el: card, hero };
+      showHeroTooltipDisplay(hero);
+      updatePanelDimming(card.closest(".shop-panel"));
+    });
+
+    return card;
+  }
+
   function buildSearchPanel() {
     const panel = document.createElement("div");
     panel.className = "shop-panel category-search";
@@ -332,12 +585,21 @@
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.className = "search-scope-checkbox";
-      checkbox.addEventListener("change", () => toggleSearchScope(scope, checkbox.checked));
       chip.appendChild(checkbox);
 
       const box = document.createElement("span");
       box.className = "search-scope-box";
       chip.appendChild(box);
+
+      // Checkmark visibility is driven directly from JS (not a CSS
+      // :checked ~ sibling-combinator rule) — a plain class toggle here is
+      // unambiguous regardless of any browser-specific quirk in how
+      // :checked-triggered sibling repaints get scheduled, which repeated
+      // reports of the checkmark "not visually updating" pointed at.
+      checkbox.addEventListener("change", () => {
+        box.classList.toggle("is-checked", checkbox.checked);
+        toggleSearchScope(scope, checkbox.checked);
+      });
 
       const label = document.createElement("span");
       label.className = "search-scope-label";
@@ -535,7 +797,9 @@
 
   function updatePanelDimming(panel) {
     if (!panel) return;
-    const shouldDim = !!panel.querySelector(".mod-box.is-hovered, .mod-box.selected");
+    const shouldDim = !!panel.querySelector(
+      ".mod-box.is-hovered, .mod-box.selected, .hero-card.is-hovered, .hero-card.selected"
+    );
     panel.classList.toggle("dimming", shouldDim);
   }
 
@@ -570,6 +834,15 @@
     // nothing is hovered/selected to exempt from the dimming rule anymore.
     updatePanelDimming(panel);
     updateUpgradeHighlight(null, null);
+  }
+
+  // Same rationale as deselectCard above, for hero cards.
+  function deselectHeroCard() {
+    if (!selectedHeroCard) return;
+    const panel = selectedHeroCard.el.closest(".shop-panel");
+    selectedHeroCard.el.classList.remove("selected");
+    selectedHeroCard = null;
+    updatePanelDimming(panel);
   }
 
   function buildTooltipDisplay() {
@@ -666,6 +939,48 @@
     notes.appendChild(notesList);
     card.appendChild(notes);
 
+    // Prototype hero tooltip — a separate card (own scale/position CSS
+    // mirroring .tooltip-card, own visibility toggle) rather than folded
+    // into tooltipCard above, since heroes don't have a cost/Statistical
+    // Stats/Notes and shouldn't drag any of that item-specific machinery
+    // in. Lives in the same .tooltip-scroll-viewport as the item card
+    // (see below) so it shares the same crop/scroll behavior; the two are
+    // mutually exclusive (see showHeroTooltipDisplay/hideTooltipDisplay).
+    const heroCard = document.createElement("div");
+    heroCard.className = "hero-tooltip-card";
+
+    const heroTop = document.createElement("div");
+    heroTop.className = "hero-tooltip-top";
+    const heroName = document.createElement("div");
+    heroName.className = "hero-tooltip-name";
+    heroTop.appendChild(heroName);
+    const heroTags = document.createElement("div");
+    heroTags.className = "hero-tooltip-tags";
+    heroTop.appendChild(heroTags);
+    heroCard.appendChild(heroTop);
+
+    // Character info (plain/neutral card — not tied to a weapon/vitality/
+    // spirit background like the 3 stat sections below) + the 3 stat
+    // sections, each built identically (see buildHeroTooltipSection) just
+    // with a different background pair and stat list.
+    const heroInfo = document.createElement("div");
+    heroInfo.className = "hero-tooltip-section hero-tooltip-info";
+    const heroInfoTitle = document.createElement("div");
+    heroInfoTitle.className = "hero-tooltip-section-title hero-tooltip-info-title";
+    heroInfoTitle.textContent = "Character Info";
+    heroInfo.appendChild(heroInfoTitle);
+    const heroInfoBody = document.createElement("div");
+    heroInfoBody.className = "hero-tooltip-section-body hero-tooltip-info-body";
+    heroInfo.appendChild(heroInfoBody);
+    heroCard.appendChild(heroInfo);
+
+    const heroWeapon = buildHeroTooltipSection("weapon", "Weapon Stats");
+    heroCard.appendChild(heroWeapon.section);
+    const heroVitality = buildHeroTooltipSection("vitality", "Vitality Stats");
+    heroCard.appendChild(heroVitality.section);
+    const heroSpirit = buildHeroTooltipSection("spirit", "Spirit Stats");
+    heroCard.appendChild(heroSpirit.section);
+
     // .tooltip-scroll-viewport is the element that actually scrolls —
     // inset from .tooltip-display's own edges by --tooltip-crop-top/
     // -bottom (see style.css) so where the card visually clips is
@@ -673,9 +988,121 @@
     const viewport = document.createElement("div");
     viewport.className = "tooltip-scroll-viewport";
     viewport.appendChild(card);
+    viewport.appendChild(heroCard);
     tooltipDisplayEl.appendChild(viewport);
 
     tooltipCard = { root: card, top, name, costValue, body, desc, statistical, statisticalBody, notes, notesList };
+    heroTooltipCard = {
+      root: heroCard,
+      name: heroName,
+      tags: heroTags,
+      infoBody: heroInfoBody,
+      weaponBody: heroWeapon.body,
+      vitalityBody: heroVitality.body,
+      spiritBody: heroSpirit.body
+    };
+  }
+
+  // One weapon/vitality/spirit stat section of the hero tooltip — same
+  // top-bar-title + body shape as .tooltip-card-top/-body, just using the
+  // matching tooltip_bg_<cat>_top/bottom.png pair for that stat category
+  // instead of the hovered item's own category.
+  function buildHeroTooltipSection(cat, title) {
+    const section = document.createElement("div");
+    section.className = "hero-tooltip-section hero-tooltip-" + cat;
+
+    const top = document.createElement("div");
+    top.className = "hero-tooltip-section-title";
+    top.style.backgroundImage = 'url("frontend_assets/tooltip_bg_' + cat + '_top.png")';
+    const titleText = document.createElement("span");
+    titleText.textContent = title;
+    top.appendChild(titleText);
+    const titleIcon = document.createElement("img");
+    titleIcon.className = "hero-tooltip-section-title-icon";
+    titleIcon.src = "stat_icons/icon-" + cat + ".webp";
+    titleIcon.alt = "";
+    top.appendChild(titleIcon);
+    section.appendChild(top);
+
+    const body = document.createElement("div");
+    body.className = "hero-tooltip-section-body";
+    body.style.backgroundImage = 'url("frontend_assets/tooltip_bg_' + cat + '_bottom.png")';
+    section.appendChild(body);
+
+    return { section, body };
+  }
+
+  function heroTooltipStatRowsHtml(stats) {
+    return stats
+      .map(
+        (s) =>
+          '<div class="hero-tooltip-stat-row">' +
+          '<span class="hero-tooltip-stat-label-group">' +
+          (s.icon ? '<img class="hero-tooltip-stat-icon" src="stat_icons/' + s.icon + '" alt="">' : "") +
+          '<span class="hero-tooltip-stat-label">' + escapeHtml(s.label) + "</span>" +
+          "</span>" +
+          '<span class="hero-tooltip-stat-value">' + escapeHtml(s.value) + "</span>" +
+          "</div>"
+      )
+      .join("");
+  }
+
+  // Mirrors deadlock.wiki's own .weaponcard-container widget (name +
+  // playstyle tags + headline DPS + falloff range + a short notes bar) —
+  // rendered at the top of the Weapon Stats body, above the regular stat
+  // rows. Image comes from hero_icons/hero_weapons/<slug>_weapon.png
+  // (added per-hero alongside the existing icon/mini/logo folders).
+  function buildHeroWeaponCardHtml(hero, weapon) {
+    return (
+      '<div class="hero-tooltip-weapon-card">' +
+      '<div class="hero-tooltip-weapon-info">' +
+      '<div class="hero-tooltip-weapon-name">' + escapeHtml(weapon.name) + "</div>" +
+      '<div class="hero-tooltip-weapon-tags">' +
+      weapon.tags.map((t) => '<span class="hero-tooltip-tag-pill">' + escapeHtml(t) + "</span>").join("") +
+      "</div>" +
+      '<div class="hero-tooltip-weapon-dps">' +
+      statIconImg("damage-per-second", "hero-tooltip-stat-icon") +
+      escapeHtml(weapon.damagePerSecond) +
+      " Damage Per Second</div>" +
+      '<div class="hero-tooltip-weapon-falloff">Falloff Range: ' + escapeHtml(weapon.falloffRange) + "</div>" +
+      "</div>" +
+      '<div class="hero-tooltip-weapon-image" style="background-image:url(&quot;' +
+      heroWeaponFile(hero) +
+      '&quot;)"></div>' +
+      "</div>" +
+      '<div class="hero-tooltip-weapon-notes">' + escapeHtml(weapon.notes) + "</div>"
+    );
+  }
+
+  function showHeroTooltipDisplay(hero) {
+    const details = HERO_DETAILS[hero.slug];
+    if (!details || !heroTooltipCard) return;
+
+    heroTooltipCard.name.textContent = hero.name;
+    heroTooltipCard.tags.innerHTML = (details.tags || [])
+      .map((t) => '<span class="hero-tooltip-tag-pill">' + escapeHtml(t) + "</span>")
+      .join("");
+
+    heroTooltipCard.infoBody.innerHTML =
+      '<div class="hero-tooltip-stat-row"><span class="hero-tooltip-stat-label">Pronouns</span><span class="hero-tooltip-stat-value">' +
+      escapeHtml(details.info.pronouns) +
+      '</span></div><div class="hero-tooltip-stat-row"><span class="hero-tooltip-stat-label">Voice Actor</span><span class="hero-tooltip-stat-value">' +
+      escapeHtml(details.info.voiceActor) +
+      '</span></div><div class="hero-tooltip-stat-row"><span class="hero-tooltip-stat-label">Internal Names</span><span class="hero-tooltip-stat-value">' +
+      escapeHtml(details.info.internalNames) +
+      "</span></div>";
+
+    const weaponCardHtml = details.weapon ? buildHeroWeaponCardHtml(hero, details.weapon) : "";
+    heroTooltipCard.weaponBody.innerHTML = weaponCardHtml + heroTooltipStatRowsHtml(details.weaponStats);
+    heroTooltipCard.vitalityBody.innerHTML = heroTooltipStatRowsHtml(details.vitalityStats);
+    heroTooltipCard.spiritBody.innerHTML = heroTooltipStatRowsHtml(details.spiritStats);
+
+    if (tooltipCard) tooltipCard.root.classList.remove("visible");
+    heroTooltipCard.root.classList.add("visible");
+  }
+
+  function hideHeroTooltipDisplay() {
+    if (heroTooltipCard) heroTooltipCard.root.classList.remove("visible");
   }
 
   // Clicking an "Upgrades To/From" link: switch to that item's category if
@@ -723,6 +1150,7 @@
     }
 
     tooltipCard.root.classList.add("visible");
+    hideHeroTooltipDisplay();
   }
 
   function hideTooltipDisplay() {
@@ -1845,7 +2273,7 @@
     saveBtn.type = "button";
     saveBtn.className = "build-save-btn";
     saveBtn.title = "Save Build";
-    saveBtn.appendChild(document.createTextNode("Save Build"));
+    saveBtn.appendChild(document.createTextNode("Save As"));
     saveBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       openSaveBuildModal();
@@ -1853,11 +2281,10 @@
     actionsLeft.appendChild(saveBtn);
     buildSaveBtnEl = saveBtn;
 
-    // Resets the canvas to a blank build (unlike Clear, which only empties
-    // the current build's sections — this also drops its title/hero and
-    // unlinks it from whatever library entry it came from) without
-    // touching that entry's own saved data, same "unlink before writing"
-    // ordering clearAllSections already uses for the same reason.
+    // Resets the canvas to a blank build — drops its sections, title, and
+    // hero, and unlinks it from whatever library entry it came from —
+    // without touching that entry's own saved data, hence unlinking
+    // savedBuildId BEFORE writing to storage (see startNewBuild below).
     const newBuildBtn = document.createElement("button");
     newBuildBtn.type = "button";
     newBuildBtn.className = "build-new-build-btn";
@@ -1913,13 +2340,6 @@
     addBtn.addEventListener("click", addBuildSection);
     actionsRight.appendChild(addBtn);
     addSectionBtnEl = addBtn;
-
-    const clearBtn = document.createElement("button");
-    clearBtn.type = "button";
-    clearBtn.className = "build-clear-sections-btn";
-    clearBtn.appendChild(document.createTextNode("Clear"));
-    clearBtn.addEventListener("click", clearAllSections);
-    actionsRight.appendChild(clearBtn);
 
     buildSectionsViewportEl = document.createElement("div");
     buildSectionsViewportEl.className = "build-sections-viewport";
@@ -2210,30 +2630,14 @@
     clearInvestmentHighlight();
   }
 
-  function clearAllSections() {
-    buildState.sections = [];
-    // Clear reads as "start a fresh build" — unlink it from whatever
-    // library entry was loaded, so the next Save creates a new entry
-    // instead of silently overwriting the one just cleared away.
-    buildState.savedBuildId = null;
-    openSectionSettingsId = null;
-    saveBuildToStorage(buildState);
-    renderBuildSections();
-    updateShopItemUsedState();
-    clearInvestmentHighlight();
-    renderSavedBuildsList();
-  }
-
   function setBuildTitle(title) {
     buildState.title = title;
     saveBuildToStorage(buildState);
   }
 
-  // Like clearAllSections, but resets the build's whole identity (title,
-  // hero) too, not just its sections — "start a brand new build" rather
-  // than "empty out the one I'm on". Unlinks savedBuildId BEFORE writing
-  // to storage for the same reason clearAllSections does: so the
-  // library entry this build used to be linked to (if any) isn't
+  // Resets the build's whole identity (sections, title, hero) — "start a
+  // brand new build". Unlinks savedBuildId BEFORE writing to storage so
+  // the library entry this build used to be linked to (if any) isn't
   // silently overwritten with the now-blank state.
   function startNewBuild() {
     buildState.sections = [];
@@ -2371,7 +2775,7 @@
     const confirmBtn = document.createElement("button");
     confirmBtn.type = "button";
     confirmBtn.className = "save-build-confirm-btn";
-    confirmBtn.textContent = "Start New Build";
+    confirmBtn.textContent = "New Build";
     confirmBtn.addEventListener("click", () => {
       startNewBuild();
       closeNewBuildConfirmModal();
@@ -2393,6 +2797,76 @@
 
   function closeNewBuildConfirmModal() {
     if (newBuildConfirmModalEl) newBuildConfirmModalEl.classList.remove("is-open");
+  }
+
+  // Same "small dialog over the build panel" shell as the New Build
+  // confirm modal above (shares its .new-build-confirm-modal CSS for the
+  // top-aligned background) — asks before permanently removing a saved
+  // build from the library, rather than deleting on a single click.
+  // pendingDeleteBuildId stages which build the click handler that opened
+  // this modal was for, since (unlike New Build) this action is per-item
+  // rather than global. Overlay gets its OWN class (not
+  // new-build-confirm-overlay, which has no styling of its own anyway) so
+  // the two modals stay distinguishable to anything querying by class,
+  // rather than both answering to the same selector.
+  function buildDeleteBuildConfirmModal() {
+    const overlay = document.createElement("div");
+    overlay.className = "save-build-modal-overlay delete-build-confirm-overlay";
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeDeleteBuildConfirmModal();
+    });
+
+    const modal = document.createElement("div");
+    modal.className = "save-build-modal new-build-confirm-modal";
+    overlay.appendChild(modal);
+
+    const title = document.createElement("div");
+    title.className = "save-build-modal-title";
+    title.textContent = "Delete This Build?";
+    modal.appendChild(title);
+
+    const message = document.createElement("div");
+    message.className = "new-build-confirm-message";
+    message.textContent = "This can't be undone — the build will be permanently removed from your library.";
+    modal.appendChild(message);
+
+    const actions = document.createElement("div");
+    actions.className = "save-build-modal-actions";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "save-build-cancel-btn";
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.addEventListener("click", closeDeleteBuildConfirmModal);
+    actions.appendChild(cancelBtn);
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "save-build-confirm-btn";
+    confirmBtn.textContent = "Delete";
+    confirmBtn.addEventListener("click", () => {
+      if (pendingDeleteBuildId) deleteBuildFromLibrary(pendingDeleteBuildId);
+      closeDeleteBuildConfirmModal();
+    });
+    actions.appendChild(confirmBtn);
+
+    modal.appendChild(actions);
+    document.body.appendChild(overlay);
+    deleteBuildConfirmModalEl = overlay;
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && overlay.classList.contains("is-open")) closeDeleteBuildConfirmModal();
+    });
+  }
+
+  function openDeleteBuildConfirmModal(id) {
+    pendingDeleteBuildId = id;
+    if (deleteBuildConfirmModalEl) deleteBuildConfirmModalEl.classList.add("is-open");
+  }
+
+  function closeDeleteBuildConfirmModal() {
+    pendingDeleteBuildId = null;
+    if (deleteBuildConfirmModalEl) deleteBuildConfirmModalEl.classList.remove("is-open");
   }
 
   // Applies the modal's name/hero fields to the canvas, then snapshots it
@@ -2572,7 +3046,6 @@
     if (!selectedSavedHeroSlug) {
       const empty = document.createElement("div");
       empty.className = "saved-builds-empty";
-      empty.textContent = "Select a hero to view their saved builds";
       savedBuildsHeroPanelEl.appendChild(empty);
       return;
     }
@@ -2597,9 +3070,6 @@
     if (!heroBuilds.length) {
       const empty = document.createElement("div");
       empty.className = "saved-builds-empty";
-      empty.textContent = query
-        ? "No builds match \"" + savedBuildsSearchQuery.trim() + "\""
-        : "No saved builds for " + hero.name + " yet";
       savedBuildsHeroPanelEl.appendChild(empty);
       return;
     }
@@ -2635,7 +3105,7 @@
         deleteBtn.title = "Delete";
         deleteBtn.addEventListener("click", (e) => {
           e.stopPropagation();
-          deleteBuildFromLibrary(saved.id);
+          openDeleteBuildConfirmModal(saved.id);
         });
         row.appendChild(deleteBtn);
 
@@ -3452,11 +3922,13 @@
   buildTooltipDisplay();
   buildTabs();
   buildPanels();
+  buildHeroPanel();
   buildSearchPanel();
   buildShopBuildsUI();
   buildBuildTabsUI();
   buildSaveBuildModal();
   buildNewBuildConfirmModal();
+  buildDeleteBuildConfirmModal();
   syncTooltipDisplayHeight();
   syncShopBuildsAlignment();
   syncHeaderCreditAlignment();
