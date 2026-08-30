@@ -1,0 +1,4298 @@
+{
+  "heroSlugs": [
+    "abrams",
+    "apollo",
+    "bebop",
+    "billy",
+    "calico",
+    "celeste",
+    "doorman",
+    "drifter",
+    "dynamo",
+    "graves",
+    "grey_talon",
+    "haze",
+    "holliday",
+    "infernus",
+    "ivy",
+    "kelvin",
+    "lady_geist",
+    "lash",
+    "mcginnis",
+    "mina",
+    "mirage",
+    "mo_and_krill",
+    "paige",
+    "paradox",
+    "pocket",
+    "rem",
+    "seven",
+    "shiv",
+    "silver_human",
+    "sinclair",
+    "venator",
+    "victor",
+    "vindicta",
+    "viscous",
+    "vyper",
+    "warden",
+    "wraith",
+    "yamato"
+  ],
+  "heroDetails": {
+    "abrams": {
+      "tags": [
+        "Tank",
+        "Brawler",
+        "Bull-Headed"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Samoa Joe",
+        "internalNames": "Atlas; Bull"
+      },
+      "weapon": {
+        "name": "Case Closed",
+        "tags": [
+          "Spreadshot",
+          "Close Range"
+        ],
+        "damagePerSecond": "51",
+        "falloffRange": "17m → 40m",
+        "notes": "Reloads single shells at a time. Can be interrupted"
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "51.4",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "3.6+0.1",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Pellets per shot",
+          "value": "9",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "9",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "1.59",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "0.353s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "610m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.74",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+4.03",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "800+49",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1.5",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.4m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "apollo": {
+      "tags": [
+        "Finesse",
+        "Mobility",
+        "A Cut Above"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Chester Rushing",
+        "internalNames": "Fencer"
+      },
+      "weapon": {
+        "name": "Pride of Ixia",
+        "tags": [
+          "Medium Range",
+          "Projectile"
+        ],
+        "damagePerSecond": "49",
+        "falloffRange": "25m → 25m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "48.7",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "18.5+0.825",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "15",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "2.63",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.5s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "127m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "63+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+2.91",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "770+45",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "bebop": {
+      "tags": [
+        "Hook",
+        "Bomb",
+        "Punch"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "JB Blanc"
+      },
+      "weapon": {
+        "name": "Humble Pie",
+        "tags": [
+          "Beam Weapon",
+          "Medium Range"
+        ],
+        "damagePerSecond": "59",
+        "falloffRange": "20m → 51m",
+        "notes": "Fires a continuous beam with no bullet travel"
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "59.3",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "4.98+0.115",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "66",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "11.9",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.35s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "508m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "63+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+2.91",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Max Range",
+          "value": "32+2",
+          "icon": "ability-range-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "880+52",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2.5",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Bullet Resist",
+          "value": "0%+0.3",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.5m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "4m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "5.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "billy": {
+      "tags": [
+        "Punk",
+        "Chaotic",
+        "G.O.A.T."
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Ari Kappatos",
+        "internalNames": "Punkgoat"
+      },
+      "weapon": {
+        "name": "Biquette",
+        "tags": [
+          "Close Range"
+        ],
+        "damagePerSecond": "74",
+        "falloffRange": "14m → 32m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "74.1",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "6.3+0.127",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "30",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "11.8",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.9s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "513m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Crit Bonus Scale",
+          "value": "-20%",
+          "icon": "damage-amplification-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "820+53",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "calico": {
+      "tags": [
+        "Tricksy",
+        "Slippery",
+        "Burst Damage"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "internalNames": "Nano"
+      },
+      "weapon": {
+        "name": "Sweetest Lie",
+        "tags": [
+          "Spreadshot",
+          "Close Range"
+        ],
+        "damagePerSecond": "79",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "78.9",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "1.84+0.043",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Pellets per shot",
+          "value": "9",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "12",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "4.76",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.6s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "318m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "63+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+2.91",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "730+37",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.8m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "16.1m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "celeste": {
+      "tags": [
+        "Performer",
+        "Disruptive",
+        "Dazzling"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "internalNames": "Unicorn, Pepper"
+      },
+      "weapon": {
+        "name": "Carny Life",
+        "tags": [
+          "Medium Range",
+          "Projectile",
+          "Bouncy"
+        ],
+        "damagePerSecond": "31",
+        "falloffRange": "22m → 60m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "31",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "18+0.82",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "8",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "1.72",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "50m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Crit Bonus Scale",
+          "value": "-25%",
+          "icon": "damage-amplification-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "690+33",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "16.1m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "4",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "doorman": {
+      "tags": [
+        "Disorienting",
+        "Map Control",
+        "Mind Games"
+      ],
+      "info": {
+        "pronouns": "He/Him"
+      },
+      "weapon": {
+        "name": "Service With A Smile",
+        "tags": [
+          "Heavy Hitter",
+          "Medium Range"
+        ],
+        "damagePerSecond": "38",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "38.1",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "24+1.25",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "8",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "1.59",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.4s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "203m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Crit Bonus Scale",
+          "value": "-30%",
+          "icon": "damage-amplification-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "755+42",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.9m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "16.1m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "drifter": {
+      "tags": [
+        "Stalker",
+        "Bloodthirsty",
+        "Cruel"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Matt Mercer"
+      },
+      "weapon": {
+        "name": "Crimson Grasp",
+        "tags": [
+          "Spreadshot",
+          "Close Range"
+        ],
+        "damagePerSecond": "44",
+        "falloffRange": "22m → 27m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "44.2",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "19.5+0.49",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Pellets per shot",
+          "value": "3",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "12",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "2.27",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.44s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "508m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "51.5+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "120+3.68",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Crit Bonus Scale",
+          "value": "-45%",
+          "icon": "damage-amplification-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "755+41",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "3.5",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.9m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "dynamo": {
+      "tags": [
+        "Teamplay",
+        "Initiator",
+        "Clutch"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "John Patrick Lowrie",
+        "internalNames": "Prof_dynamo; Prof; Sumo; Jeong"
+      },
+      "weapon": {
+        "name": "The Vonnegun",
+        "tags": [
+          "Medium Range",
+          "Heavy Hitter",
+          "Projectile"
+        ],
+        "damagePerSecond": "48",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "48",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "12.6+0.5",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "20",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "3.81",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.35s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "320m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "880+61",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1.8",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Bullet Resist",
+          "value": "0%+0.625",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "graves": {
+      "tags": [
+        "Morbid",
+        "Area Denial",
+        "Necromancer"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "internalNames": "Necro"
+      },
+      "weapon": {
+        "name": "The Teacher",
+        "tags": [
+          "Beam Weapon",
+          "Close Range"
+        ],
+        "damagePerSecond": "35",
+        "falloffRange": "7.6m → 17m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "35.3",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "3.6+0.054",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "40",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "9.8",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.8s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "635m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "730+33",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Bullet Lifesteal",
+          "value": "8%",
+          "icon": "lifesteal-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "2.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "2",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "grey_talon": {
+      "tags": [
+        "Precision",
+        "Hunter",
+        "Area Denial"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "internalNames": "Archer; Orion"
+      },
+      "weapon": {
+        "name": "The Mourning Comes",
+        "tags": [
+          "Medium Range",
+          "Heavy Hitter",
+          "Projectile"
+        ],
+        "damagePerSecond": "39",
+        "falloffRange": "18m → 54m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "39.2",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "23.5+0.85",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "17",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "1.67",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.35s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "495m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "780+38",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1.5",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.3m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "16.1m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "4",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.6",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "haze": {
+      "tags": [
+        "Assassin",
+        "Stealthy",
+        "Lethal"
+      ],
+      "info": {
+        "pronouns": "She/Her"
+      },
+      "weapon": {
+        "name": "Censure & Penance",
+        "tags": [
+          "Rapid Fire",
+          "Close Range"
+        ],
+        "damagePerSecond": "50",
+        "falloffRange": "20m → 46m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "50.1",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "5.26+0.143",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "25",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "9.52",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.35s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "762m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "730+33",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "8.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "16.1m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+0.5",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "holliday": {
+      "tags": [
+        "Crackshot",
+        "Explosive",
+        "Apprehender"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "voiceActor": "Melanie Minichino",
+        "internalNames": "Astro"
+      },
+      "weapon": {
+        "name": "Doc's Orders",
+        "tags": [
+          "Medium Range",
+          "Heavy Hitter"
+        ],
+        "damagePerSecond": "42",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "41.7",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "19.7+1.14",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "10",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "2.12",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.75s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "1160m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "780+41",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "8.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "16.1m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "2",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "infernus": {
+      "tags": [
+        "Arsonist",
+        "Explosive",
+        "Burn Rubber"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Phil Morris",
+        "internalNames": "Inferno"
+      },
+      "weapon": {
+        "name": "Incendiary Remarks",
+        "tags": [
+          "Rapid Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "52",
+        "falloffRange": "18m → 55m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "52.4",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "5.5+0.088",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "27",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "9.52",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.25s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "660m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "830+39",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "ivy": {
+      "tags": [
+        "Team-up",
+        "Disruptor",
+        "Rock Solid"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "voiceActor": "Jeannie Tirado",
+        "internalNames": "Tengu"
+      },
+      "weapon": {
+        "name": "Protector's Hand",
+        "tags": [
+          "Rapid Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "61",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "60.5",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "4.45+0.08",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "33",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "13.6",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.44s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "572m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "755+45",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "16.1m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "4",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.2",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "kelvin": {
+      "tags": [
+        "Protector",
+        "Explorer",
+        "Ice Cold"
+      ],
+      "info": {
+        "pronouns": "He/Him"
+      },
+      "weapon": {
+        "name": "Expedition's End",
+        "tags": [
+          "Medium Range",
+          "Heavy Hitter",
+          "Projectile"
+        ],
+        "damagePerSecond": "71",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "70.9",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "18.6+0.418",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "14",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "3.81",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.59s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "160m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Crit Bonus Scale",
+          "value": "-25%",
+          "icon": "damage-amplification-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "880+60",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Spirit Resist",
+          "value": "0%+0.625",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.1m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "5.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.3",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "lady_geist": {
+      "tags": [
+        "Lifesteal",
+        "Self Damage",
+        "Fatale"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "voiceActor": "Abigail Marlowe",
+        "internalNames": "Geist; Ghost; Spectre"
+      },
+      "weapon": {
+        "name": "Johann's Gift",
+        "tags": [
+          "Medium Range",
+          "Heavy Hitter"
+        ],
+        "damagePerSecond": "44",
+        "falloffRange": "17m → 48m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "43.8",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "20.7+1",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "9",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "2.12",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.59s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "828m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "880+51",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.3m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "2.4m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "lash": {
+      "tags": [
+        "Initiator",
+        "High Flying",
+        "Arrogant"
+      ],
+      "info": {
+        "pronouns": "He/Him/The Lash",
+        "voiceActor": "Andrew Bowen"
+      },
+      "weapon": {
+        "name": "Tale of The Tape",
+        "tags": [
+          "Burst Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "49",
+        "falloffRange": "18m → 54m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "49.3",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "8.46+0.31",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Bullets Per Burst",
+          "value": "3",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "29",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "5.83",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.35s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "635m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "780+50",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Spirit Resist",
+          "value": "10%",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "2.1m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "mcginnis": {
+      "tags": [
+        "Inventor",
+        "Support",
+        "Disruption"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "internalNames": "Forge; Engineer"
+      },
+      "weapon": {
+        "name": "Services Rendered",
+        "tags": [
+          "Rapid Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "72",
+        "falloffRange": "20m → 58m",
+        "notes": "Increases fire rate as the guns spins up"
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "72.4",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "6.08+0.171",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "66",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "11.9",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "3.29s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "650m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "780+52",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Spirit Resist",
+          "value": "0%+0.35",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "2",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "mina": {
+      "tags": [
+        "Harasser",
+        "Nimble",
+        "Vexing"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "voiceActor": "Victoria Grace",
+        "internalNames": "Vampirebat"
+      },
+      "weapon": {
+        "name": "New Money",
+        "tags": [
+          "Burst Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "29",
+        "falloffRange": "20m → 46m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "29",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "7.31+0.275",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "12",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "3.97",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "1.7s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "762m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "660+27",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Debuff Resist",
+          "value": "-8%",
+          "icon": "debuff-resist-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.5m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "16.1m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "2",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.2s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "mirage": {
+      "tags": [
+        "Bodyguard",
+        "Traveller",
+        "Focused"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Fareed Ward",
+        "internalNames": "Sandeep"
+      },
+      "weapon": {
+        "name": "Promises Kept",
+        "tags": [
+          "Medium Range",
+          "Heavy Hitter"
+        ],
+        "damagePerSecond": "40",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "40.3",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "14.8+0.3",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "16",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "2.72",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.6s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "828m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "730+45",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1.5",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "mo_and_krill": {
+      "tags": [
+        "Tag-Team",
+        "Initiator",
+        "Burrower"
+      ],
+      "info": {
+        "pronouns": "They/Them; He/Him (Mo); He/Him (Krill)",
+        "internalNames": "Krill; Digger; Grappler; Pouncer and Driller"
+      },
+      "weapon": {
+        "name": "Yellow Canary",
+        "tags": [
+          "Rapid Fire",
+          "Spreadshot"
+        ],
+        "damagePerSecond": "60",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "59.7",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "2.82+0.0847",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Pellets per shot",
+          "value": "4",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "20",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "5.29",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.82s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "320m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "930+65",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Crit Reduction",
+          "value": "20%",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "8m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "paige": {
+      "tags": [
+        "Helpful",
+        "Protector",
+        "Booksmart"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "voiceActor": "Jacqueline Emerson",
+        "internalNames": "Bookworm; Patience"
+      },
+      "weapon": {
+        "name": "Chapter's End",
+        "tags": [
+          "Rapid Fire",
+          "Long Range"
+        ],
+        "damagePerSecond": "70",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "70",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "35+0.52",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "14",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "2",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.5s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "43.4m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "42+1.2",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "120+3.43",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "680+31",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.9m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "3.5m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "paradox": {
+      "tags": [
+        "Calculated",
+        "Disruptor",
+        "Tactician"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "voiceActor": "Elle Newlands",
+        "internalNames": "Chrono"
+      },
+      "weapon": {
+        "name": "Trade Secret",
+        "tags": [
+          "Burst Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "51",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "51.4",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "6.8+0.26",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Bullets Per Burst",
+          "value": "5",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "40",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "7.56",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.59s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "525m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "730+46",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "16.1m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "pocket": {
+      "tags": [
+        "Trickster",
+        "Burst Damage",
+        "Frogs"
+      ],
+      "info": {
+        "pronouns": "They/Them",
+        "voiceActor": "Greg Chun",
+        "internalNames": "Synth; Fairfax"
+      },
+      "weapon": {
+        "name": "The Black Sheep",
+        "tags": [
+          "Spreadshot",
+          "Close Range"
+        ],
+        "damagePerSecond": "57",
+        "falloffRange": "16m → 46m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "57.1",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "4.28+0.14",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Pellets per shot",
+          "value": "7",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "11",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "1.9",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.82s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "559m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "60+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.05",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "780+36",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Spirit Resist",
+          "value": "-15%",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "rem": {
+      "tags": [
+        "Helpful",
+        "Tiny",
+        "zZzzZ"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "internalNames": "Familiar"
+      },
+      "weapon": {
+        "name": "Long Night",
+        "tags": [
+          "Burst Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "62",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "61.5",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "16+0.34",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "13",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "3.85",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "160m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "58+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.16",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Crit Bonus Scale",
+          "value": "-20%",
+          "icon": "damage-amplification-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "680+28",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Crit Reduction",
+          "value": "10%",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Melee Resist",
+          "value": "-5%",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "4m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "seven": {
+      "tags": [
+        "High Voltage",
+        "Merciless",
+        "Area Denial"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Oliver Vaquer",
+        "internalNames": "Gigawatt; Giga"
+      },
+      "weapon": {
+        "name": "Cold Calculus",
+        "tags": [
+          "Burst Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "63",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "63",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "10.8+0.24",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Bullets Per Burst",
+          "value": "3",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "29",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "5.83",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.35s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "635m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "730+41",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Crit Reduction",
+          "value": "55%",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.8m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "shiv": {
+      "tags": [
+        "Rage",
+        "Bleed",
+        "Repeat"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Greg Chun"
+      },
+      "weapon": {
+        "name": "Busted Flush",
+        "tags": [
+          "Spreadshot",
+          "Close Range"
+        ],
+        "damagePerSecond": "52",
+        "falloffRange": "20m → 41m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "52.2",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "4.8+0.165",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Pellets per shot",
+          "value": "6",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "10",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "1.81",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.8s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "610m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "830+46",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.5m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "6s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "silver_human": {
+      "tags": [
+        "Feral",
+        "Hot Mess",
+        "Transformation"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "voiceActor": "Erica Lindbeck",
+        "internalNames": "Werewolf"
+      },
+      "weapon": {
+        "name": "Hair of the Dog",
+        "tags": [
+          "Spreadshot",
+          "Medium Range"
+        ],
+        "damagePerSecond": "42",
+        "falloffRange": "17m → 42m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "42",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "5.1+0.117",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Pellets per shot",
+          "value": "7",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "7",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "1.18",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "0.3s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "813m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "830+28",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2.5",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.7m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.5m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "2",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "sinclair": {
+      "tags": [
+        "Trickster",
+        "Copycat",
+        "Versatile"
+      ],
+      "info": {
+        "pronouns": "They/Them; He/Him (Henry); She/Her (Savannah)",
+        "voiceActor": "Andia Winslow (Savannah)",
+        "internalNames": "Magician"
+      },
+      "weapon": {
+        "name": "The Prestige",
+        "tags": [
+          "Burst Fire",
+          "Long Range",
+          "Projectile"
+        ],
+        "damagePerSecond": "48",
+        "falloffRange": "25m → 61m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "48.3",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "17.8+0.55",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Bullets Per Burst",
+          "value": "2",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "16",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "2.72",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.5s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "300m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "730+38",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.3",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "venator": {
+      "tags": [
+        "Devout",
+        "Arms Expert",
+        "Tactical"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "internalNames": "Priest; Rourke; Cain"
+      },
+      "weapon": {
+        "name": "51:20",
+        "tags": [
+          "Rapid Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "63",
+        "falloffRange": "18m → 47m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "63.5",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "8+0.27",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "33",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "7.94",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.8s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "1590m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.7",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "125+4.25",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "820+43",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Bullet Resist",
+          "value": "0%",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Spirit Resist",
+          "value": "0%",
+          "icon": "damage-resistance-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.4m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "victor": {
+      "tags": [
+        "You",
+        "Can't",
+        "Kill Me"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Jason Spisak",
+        "internalNames": "Frank"
+      },
+      "weapon": {
+        "name": "Memento Mori",
+        "tags": [
+          "Medium Range",
+          "Projectile"
+        ],
+        "damagePerSecond": "70",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "70.2",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "12+0.26",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "24",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "5.05",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.4s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "203m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "800+34",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1.5",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.3m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.1m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "13.9m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "vindicta": {
+      "tags": [
+        "Sniper",
+        "Soaring",
+        "One Shot Kill"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "internalNames": "Hornet"
+      },
+      "weapon": {
+        "name": "Wallflower's Revenge",
+        "tags": [
+          "Rapid Fire",
+          "Long Range"
+        ],
+        "damagePerSecond": "53",
+        "falloffRange": "20m → 64m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "53.4",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "12.3+0.495",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "19",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "4.33",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.91s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "660m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "755+28",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.9m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "2",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "viscous": {
+      "tags": [
+        "Evasive",
+        "Disruptor",
+        "Gooey"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Yuri Lowenthal"
+      },
+      "weapon": {
+        "name": "Deep Sea Interpreter",
+        "tags": [
+          "Medium Range",
+          "Projectile"
+        ],
+        "damagePerSecond": "49",
+        "falloffRange": "20m → 58m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "49.2",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "10.3+0.36",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "20",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "4.76",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.5s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "254m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "63+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+2.91",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "780+45",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.3",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "vyper": {
+      "tags": [
+        "Gunner",
+        "Slippery",
+        "Rat-a-Tat"
+      ],
+      "info": {
+        "pronouns": "She/Her",
+        "voiceActor": "Stephanie Kerbis",
+        "internalNames": "Viper, Kali"
+      },
+      "weapon": {
+        "name": "The Rattler",
+        "tags": [
+          "Rapid Fire",
+          "Close Range"
+        ],
+        "damagePerSecond": "94",
+        "falloffRange": "15m → 33m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "94",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "6.58+0.178",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "24",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "14.3",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "1.6s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "412m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Crit Bonus Scale",
+          "value": "-30%",
+          "icon": "damage-amplification-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "780+35",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.9m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "4",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "warden": {
+      "tags": [
+        "Initiator",
+        "Fearless",
+        "One Man Army"
+      ],
+      "info": {
+        "pronouns": "He/Him",
+        "voiceActor": "Rick D. Wasserman",
+        "internalNames": "Murphy"
+      },
+      "weapon": {
+        "name": "Freedom's Cost",
+        "tags": [
+          "Medium Range",
+          "Projectile"
+        ],
+        "damagePerSecond": "66",
+        "falloffRange": "18m → 47m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "66.1",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "17.3+0.28",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "17",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "3.81",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.91s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "290m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "805+60",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "6.3m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "wraith": {
+      "tags": [
+        "Duelist",
+        "Isolator",
+        "Telekinetic"
+      ],
+      "info": {
+        "pronouns": "She/Her"
+      },
+      "weapon": {
+        "name": "The Rake",
+        "tags": [
+          "Rapid Fire",
+          "Medium Range"
+        ],
+        "damagePerSecond": "60",
+        "falloffRange": "18m → 52m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "59.7",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "5.64+0.14",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "52",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "10.6",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.82s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "572m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "50+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "116+3.67",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "730+35",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "2",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "7.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    },
+    "yamato": {
+      "tags": [
+        "Relentless",
+        "Acrobatics",
+        "Pursuer"
+      ],
+      "info": {
+        "pronouns": "She/Her"
+      },
+      "weapon": {
+        "name": "Sister's Lament",
+        "tags": [
+          "Spreadshot",
+          "Close Range"
+        ],
+        "damagePerSecond": "63",
+        "falloffRange": "20m → 46m",
+        "notes": ""
+      },
+      "weaponStats": [
+        {
+          "label": "Damage Per Second",
+          "value": "63.2",
+          "icon": "damage-per-second-icon.png"
+        },
+        {
+          "label": "Bullet Damage",
+          "value": "5.31+0.154",
+          "icon": "bullet-damage-icon.png"
+        },
+        {
+          "label": "Pellets per shot",
+          "value": "5",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Ammo",
+          "value": "12",
+          "icon": "ammo-icon.png"
+        },
+        {
+          "label": "Bullets per sec",
+          "value": "2.38",
+          "icon": "fire-rate-icon.png"
+        },
+        {
+          "label": "Reload Time",
+          "value": "2.44s",
+          "icon": "reload-time-icon.png"
+        },
+        {
+          "label": "Bullet Velocity",
+          "value": "254m/s",
+          "icon": "bullet-velocity-icon.png"
+        },
+        {
+          "label": "Light Melee",
+          "value": "55+1.58",
+          "icon": "melee-damage-icon.png"
+        },
+        {
+          "label": "Heavy Melee",
+          "value": "128+3.68",
+          "icon": "melee-damage-icon.png"
+        }
+      ],
+      "vitalityStats": [
+        {
+          "label": "Health",
+          "value": "730+45",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Health Regen",
+          "value": "1",
+          "icon": "health-icon.png"
+        },
+        {
+          "label": "Move Speed",
+          "value": "8.2m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Sprint Speed",
+          "value": "1.6m/s",
+          "icon": "move-speed-icon.png"
+        },
+        {
+          "label": "Dash Speed",
+          "value": "14.7m/s",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina",
+          "value": "3",
+          "icon": "stamina-icon.png"
+        },
+        {
+          "label": "Stamina Cooldown",
+          "value": "4.5s",
+          "icon": "stamina-icon.png"
+        }
+      ],
+      "spiritStats": [
+        {
+          "label": "Spirit Power",
+          "value": "0+1.1",
+          "icon": "spirit-power-icon.png"
+        }
+      ]
+    }
+  }
+}

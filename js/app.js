@@ -1680,9 +1680,10 @@
 
     const nameContainer = document.createElement("div");
     nameContainer.className = "hero-card-name-container";
-    const name = document.createElement("div");
+    const name = document.createElement("img");
     name.className = "hero-card-name";
-    name.textContent = hero.name;
+    name.src = heroLogoFile(hero);
+    name.alt = hero.name;
     nameContainer.appendChild(name);
     card.appendChild(nameContainer);
 
@@ -2144,7 +2145,7 @@
 
     const heroTop = document.createElement("div");
     heroTop.className = "hero-tooltip-top";
-    const heroName = document.createElement("div");
+    const heroName = document.createElement("img");
     heroName.className = "hero-tooltip-name";
     heroTop.appendChild(heroName);
     const heroTags = document.createElement("div");
@@ -2273,7 +2274,8 @@
     const details = HERO_DETAILS[hero.slug];
     if (!details || !heroTooltipCard) return;
 
-    heroTooltipCard.name.textContent = hero.name;
+    heroTooltipCard.name.src = heroLogoFile(hero);
+    heroTooltipCard.name.alt = hero.name;
     heroTooltipCard.tags.innerHTML = (details.tags || [])
       .map((t) => '<span class="hero-tooltip-tag-pill">' + escapeHtml(t) + "</span>")
       .join("");
@@ -3742,6 +3744,12 @@
     optionalCheckbox.checked = !!section.optional;
     optionalCheckbox.dataset.action = "toggle-optional";
     optionalRow.appendChild(optionalCheckbox);
+    // Separate visual box, not the checkbox's own ::after — generated
+    // content doesn't reliably render on <input> (a replaced element) in
+    // real browsers, same reasoning as .search-scope-box's own checkmark.
+    const optionalBox = document.createElement("span");
+    optionalBox.className = "build-section-settings-optional-box";
+    optionalRow.appendChild(optionalBox);
     const optionalText = document.createElement("span");
     optionalText.className = "build-section-settings-optional-text";
     const optionalLabel = document.createElement("span");
@@ -3898,6 +3906,11 @@
     heroList.className = "save-build-hero-list";
     modal.appendChild(heroList);
     saveBuildHeroListEl = heroList;
+
+    const autosaveNote = document.createElement("div");
+    autosaveNote.className = "save-build-modal-autosave-note";
+    autosaveNote.textContent = "Your current build is auto-saved, this will create a separate save";
+    modal.appendChild(autosaveNote);
 
     const actions = document.createElement("div");
     actions.className = "save-build-modal-actions";

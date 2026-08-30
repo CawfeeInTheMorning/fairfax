@@ -1321,14 +1321,14 @@ body {
 
 .save-build-name-input {
   height: 36px;
-  padding: 0 10px;
+  padding: 0 20px;
   box-sizing: border-box;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
   font-size: 14px;
   color: #f2ead9;
   background-color: transparent;
   background-image: url("../frontend_assets/shop_header_extra_large.png");
-  background-size: auto 100%;
+  background-size: 100% 100%;
   border: 1px solid rgba(240, 236, 226, 0.15);
   border-radius: 4px;
 }
@@ -1347,6 +1347,17 @@ body {
   padding: 4px;
   background-color: rgb(15 13 19);
   border-radius: 4px;
+}
+
+/* Same small-note treatment as .new-build-confirm-message, just with its
+   own top margin since it follows the hero list rather than the title. */
+.save-build-modal-autosave-note {
+  margin-top: 10px;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #f2ead9;
+  opacity: 0.8;
 }
 
 .save-build-modal-actions {
@@ -1653,6 +1664,7 @@ body {
      block and transform:scale'd (the technique .info-tab-content uses),
      which needs a stable native width to scale from. */
   gap: calc(12px * (100cqw / var(--shop-builds-content-native-w)));
+  padding: calc(10px * (100cqw / var(--shop-builds-content-native-w)));
 }
 
 .saved-builds-hero-panel-header {
@@ -1660,7 +1672,7 @@ body {
   align-items: center;
   justify-content: center;
   padding-bottom: calc(10px * (100cqw / var(--shop-builds-content-native-w)));
-  border-bottom: 1px solid rgba(240, 236, 226, 0.15);
+  border-bottom: 2px solid rgb(37 33 45);
 }
 
 /* Holds the selected hero's logo (hero_icons/hero_logos/) — sized by
@@ -1741,7 +1753,7 @@ body {
   flex: 1;
   min-width: 0;
   font-family: "ValveOracle", "Segoe UI", sans-serif;
-  font-size: calc(15px * (100cqw / var(--shop-builds-content-native-w)));
+  font-size: calc(16px * (100cqw / var(--shop-builds-content-native-w)));
   color: #f2ead9;
   white-space: nowrap;
   overflow: hidden;
@@ -2026,6 +2038,7 @@ body {
 }
 
 .build-section-settings-optional-row {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 6px;
@@ -2037,13 +2050,62 @@ body {
   user-select: none;
 }
 
+/* The real click target — invisible, sized/positioned to sit exactly over
+   the visual .build-section-settings-optional-box below and stacked above
+   it via z-index. Not styled via appearance:none + its own ::after,
+   because generated content doesn't reliably render on <input> (a
+   replaced element) in real browsers — same reasoning as
+   .search-scope-checkbox/.search-scope-box. */
 .build-section-settings-optional-row input[type="checkbox"] {
+  position: absolute;
+  top: 1px;
+  left: 0;
+  width: 17.62px;
+  height: 17.62px;
+  margin: 0;
+  z-index: 1;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.build-section-settings-optional-box {
+  position: relative;
   width: 17.62px;
   height: 17.62px;
   margin-top: 1px;
   flex-shrink: 0;
-  accent-color: #00fff5;
-  cursor: pointer;
+  box-sizing: border-box;
+  background-color: rgb(15, 13, 19);
+  border-radius: 3px;
+}
+
+/* Checked state shows a centered checkmark instead of the browser's
+   native tick — same mask-tinting technique as .search-scope-box::after,
+   so it can be colored to an exact #f2ead9 rather than only
+   inverted/dimmed. */
+.build-section-settings-optional-box::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  background-color: #f2ead9;
+  -webkit-mask-image: url("../frontend_assets/icon_checkmark.svg");
+  mask-image: url("../frontend_assets/icon_checkmark.svg");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.build-section-settings-optional-row input[type="checkbox"]:checked ~ .build-section-settings-optional-box::after {
+  opacity: 1;
 }
 
 .build-section-settings-optional-text {
@@ -2314,7 +2376,7 @@ body {
   justify-content: center;
   border-radius: 14px 0 0 14px;
   flex-shrink: 0;
-  transition: filter 0.15s ease;
+  transition: height 0.25s ease, filter 0.15s ease;
 }
 
 #tab-search img {
@@ -2327,6 +2389,10 @@ body {
 #tab-search:hover,
 #tab-search.is-open {
   filter: brightness(1.1);
+}
+
+#tab-search.is-open {
+  height: 216px;
 }
 
 /* ---------- shop panel ---------- */
@@ -2497,6 +2563,7 @@ body {
 }
 
 .search-scope-chip {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2504,14 +2571,26 @@ body {
   user-select: none;
 }
 
-/* Visually hidden but still focusable/toggleable — .search-scope-box is
-   the actual visible control, driven by the :checked state below. */
+/* The actual click/tap target — sized and positioned to sit exactly over
+   the visible .search-scope-box (which is purely decorative) and stacked
+   above it via z-index, rather than being an invisible 1x1px dot that
+   relies on label-click-forwarding through a sibling. That indirection
+   was unreliable: .search-scope-box gets a continuous hover animation
+   (translateY + rotate, see :hover below) that shifts its hit region, so
+   a mousedown/mouseup pair could straddle the animated box and land on
+   two different elements, silently dropping the click. Making the
+   checkbox itself the real, stationary hit target sidesteps that. */
 .search-scope-checkbox {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 22px;
+  margin: 0;
+  z-index: 1;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
 }
 
 .search-scope-box {
@@ -3138,11 +3217,12 @@ body {
 }
 
 .hero-card-name {
-  font-size: 13px;
-  line-height: 1.2;
-  color: #16130f;
-  font-weight: 600;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+  width: 80%;
+  height: 100%;
+  object-fit: contain;
+  /* drop-shadow() has no separate opacity control — an rgba() color is
+     the way to dial one in (here, 50%). */
+  filter: drop-shadow(2px 0px 3px rgba(0, 0, 0, 0.5));
 }
 
 .item-tag {
@@ -3268,12 +3348,12 @@ body {
 }
 
 .hero-tooltip-name {
-  font-family: "ValveOracle", sans-serif;
-  font-weight: 700;
-  font-size: 26px;
-  color: #ffffff;
-  line-height: 1.15;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: block;
+  height: 44px;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  object-fit: contain;
 }
 
 .hero-tooltip-tags {
