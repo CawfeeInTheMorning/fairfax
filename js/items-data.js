@@ -227,6 +227,7 @@ const STAT_ICON_FILES = {
   "ability-range": "ability-range-icon.png",
   "ammo": "ammo-icon.png",
   "bonus-ability-charges": "bonus-ability-charges-icon.png",
+  "boon-scaling": "boon-scaling-icon.png",
   "build-up": "build-up-icon.png",
   "bullet-damage": "bullet-damage-icon.png",
   "bullet-evasion": "bullet-evasion-icon.png",

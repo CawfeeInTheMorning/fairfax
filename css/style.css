@@ -94,7 +94,10 @@
      search-viewport/.build-actions-right-viewport below. */
   --build-actions-left-native-w: 604px;
   --build-actions-search-native-w: 304px;
-  --build-actions-right-native-w: 138px;
+  /* 138px Add Section + 12px gap + 150px Reset Original (hidden except
+     while a curated build is loaded, but still reserved here so nothing
+     reflows when it appears/disappears). */
+  --build-actions-right-native-w: 300px;
 
   /* .investment-bars' "100% scale" reference width — its natural
      content width (souls column + 3 pill+label columns + gaps/padding/
@@ -1089,6 +1092,13 @@ body {
   left: 0;
   display: flex;
   align-items: center;
+  /* flex-end, not flex-start: the reserved width above accounts for
+     Reset Original even though it's display:none except while a curated
+     build is loaded (see updateResetOriginalBtnVisibility) — right-
+     aligning keeps Add Section hugging the row's actual right edge in
+     the (much more common) case where it's the only button shown,
+     instead of sliding left into now-empty reserved space. */
+  justify-content: flex-end;
   gap: 12px;
   width: var(--build-actions-right-native-w);
   transform: scale(calc(100cqw / var(--shop-builds-content-native-w)));
@@ -1143,6 +1153,34 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   filter: invert(1);
+}
+
+/* Only visible while a curated build is loaded — see
+   updateResetOriginalBtnVisibility in app.js. Same chrome as
+   .build-add-section-btn for consistency, just wider (its own text is
+   longer) and hidden by default so it doesn't flash visible before that
+   check runs. */
+.build-reset-original-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: #f2ead9;
+  background-color: transparent;
+  background-image: url("../frontend_assets/shop_header_large.png");
+  background-size: 100% 100%;
+  border: none;
+  width: 150px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.build-reset-original-btn:hover {
+  filter: brightness(1.3);
 }
 
 .build-hero-option {
@@ -1802,6 +1840,25 @@ body {
   filter: brightness(1.3);
 }
 
+/* Curated builds (see js/curated-builds.js) show this instead of the
+   delete button above — same corner-badge placement, just no icon since
+   it carries text instead. */
+.saved-builds-hero-build-author-badge {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  padding: calc(2px * (100cqw / var(--shop-builds-content-native-w)))
+    calc(8px * (100cqw / var(--shop-builds-content-native-w)));
+  border-radius: 8px;
+  background: rgb(118 54 47);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f2ead9;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: calc(12px * (100cqw / var(--shop-builds-content-native-w)));
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 /* Filters .saved-builds-hero-panel's build list by name as you type (see
    savedBuildsSearchInputEl in app.js) — lives in .build-actions-search
    (style.css, near .build-section-actions-row), the Saves-tab
@@ -1954,7 +2011,10 @@ body {
 }
 
 .build-section-title {
-  flex: 1;
+  /* Sized to its own content, not stretched — .build-section-description
+     takes whatever space is left (see below), rather than the two
+     splitting the header 50/50 regardless of how long either one is. */
+  flex: 0 1 auto;
   /* min-width:0 overrides the flex item default of min-width:auto (which
      otherwise refuses to shrink narrower than the text's own intrinsic
      width, forcing the header to grow instead of truncating). */
@@ -1974,6 +2034,35 @@ body {
   outline: 1px solid rgba(0, 255, 245, 0.5);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* Optional freeform note beside the title (e.g. "At least 1 for Green
+   Spike") — same contentEditable/rename-on-blur pattern as the title
+   itself (see handleSectionsFocusOut/updateSectionDescription in
+   app.js), just visually secondary: smaller, italic, dimmer. */
+.build-section-description {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: "ValveOracle", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(242, 234, 217, 0.6);
+  outline: none;
+}
+
+.build-section-description:focus {
+  outline: 1px solid rgba(0, 255, 245, 0.5);
+  outline-offset: 2px;
+  border-radius: 2px;
+  color: #f2ead9;
+}
+
+.build-section-description:empty:not(:focus)::before {
+  content: "Description";
+  color: rgba(242, 234, 217, 0.35);
 }
 
 .build-section-settings-btn {
@@ -2080,32 +2169,29 @@ body {
 }
 
 /* Checked state shows a centered checkmark instead of the browser's
-   native tick — same mask-tinting technique as .search-scope-box::after,
-   so it can be colored to an exact #f2ead9 rather than only
-   inverted/dimmed. */
-.build-section-settings-optional-box::after {
-  content: "";
+   native tick — a real <img> (see app.js), not a mask-image ::after.
+   Same reasoning as .search-scope-checkmark: the mask technique checked
+   out in every computed-style test but reportedly still wasn't actually
+   visible for real users, so this drops it rather than keep chasing it.
+   Driven by JS (a "change" listener, not the :checked selector this used
+   before) for the same reason — one less thing that has to render
+   correctly on its own for the checkmark to show up. filter forces it
+   pure white; z-index explicitly outranks the checkbox (z-index: 1). */
+.build-section-settings-optional-checkmark {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 12px;
   height: 12px;
-  background-color: #f2ead9;
-  -webkit-mask-image: url("../frontend_assets/icon_checkmark.svg");
-  mask-image: url("../frontend_assets/icon_checkmark.svg");
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  opacity: 0;
-  transition: opacity 0.1s ease;
+  z-index: 2;
+  filter: brightness(0) invert(1);
+  pointer-events: none;
+  display: none;
 }
 
-.build-section-settings-optional-row input[type="checkbox"]:checked ~ .build-section-settings-optional-box::after {
-  opacity: 1;
+.build-section-settings-optional-checkmark.is-checked {
+  display: block;
 }
 
 .build-section-settings-optional-text {
@@ -2613,39 +2699,29 @@ body {
 }
 
 /* Checked state shows a checkmark centered in the box instead of
-   highlighting the box itself. */
-.search-scope-box::after {
-  content: "";
+   highlighting the box itself. A real <img> (see app.js), not a
+   mask-image ::after — the mask approach rendered correctly in every
+   computed-style check but reportedly still didn't actually show up for
+   real users, so this drops that technique entirely rather than keep
+   trying to diagnose it. filter forces it pure white regardless of the
+   source SVG's own fill; z-index explicitly outranks the checkbox
+   (z-index: 1) so it's unambiguously painted on top, not just invisible
+   underneath it by coincidence of opacity. */
+.search-scope-checkmark {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 16px;
   height: 16px;
-  /* mask (not background-image) so the SVG can be tinted to an exact
-     color via background-color, rather than only inverted/dimmed. */
-  background-color: #f2ead9;
-  -webkit-mask-image: url("../frontend_assets/icon_checkmark.svg");
-  mask-image: url("../frontend_assets/icon_checkmark.svg");
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  opacity: 0;
-  /* Some engines lag repainting a masked pseudo-element when only a
-     sibling's :checked state changes (no geometry change of its own to
-     otherwise trigger a repaint) — an explicit transition forces it to be
-     treated as continuously animated/repainted rather than a static
-     snap-state change. */
-  transition: opacity 0.1s ease;
+  z-index: 2;
+  filter: brightness(0) invert(1);
+  pointer-events: none;
+  display: none;
 }
 
-/* Driven directly by JS (see the checkbox's "change" listener in app.js)
-   rather than a :checked ~ sibling-combinator rule. */
-.search-scope-box.is-checked::after {
-  opacity: 1;
+.search-scope-checkmark.is-checked {
+  display: block;
 }
 
 .search-scope-checkbox:focus-visible ~ .search-scope-box {
@@ -3338,7 +3414,7 @@ body {
 .hero-tooltip-top {
   width: 100%;
   background-image: url("../frontend_assets/tooltip_bg_hero_top.png");
-  background-size: 100% auto;
+  background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: top center;
   background-color: #2a2432;
@@ -3558,6 +3634,38 @@ body {
   font-weight: 700;
   color: #f2ead9;
   white-space: nowrap;
+}
+
+.hero-tooltip-stat-value-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+/* Boon Scaling (deadlock.wiki's infobox-h-spiritboon — how much a stat
+   grows with character level) — was previously just a trailing "+X" on
+   the value text; now its own badge, same idea as .tooltip-stat-scaling
+   for item stat boxes but green (vs. that one's purple) and anchored to
+   the top-right corner of the value instead of the top-left of a box. */
+.hero-tooltip-stat-boon {
+  position: absolute;
+  top: -16px;
+  right: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0px 6px;
+  border-radius: 8px;
+  background: #2f9c4a;
+  color: #e0fbdd;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.hero-tooltip-stat-boon-icon {
+  width: 16px;
+  height: 18px;
+  object-fit: contain;
 }
 
 .tooltip-card-top {
@@ -4171,4 +4279,39 @@ body {
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
+}
+
+/* Below 1000px the site-wide scale-down (see e.g. .category-tabs,
+   .tier-grid) shrinks everything past the point of being readable, and
+   there's no separate mobile layout — rather than build/maintain one,
+   this swaps the whole shop out for a plain "come back on a bigger
+   screen" message. .shop-graphs is a sibling of .shop-builds-wrap (not a
+   descendant), so it needs listing separately to actually disappear too. */
+.too-small-message {
+  display: none;
+}
+
+@media (max-width: 999px) {
+  .shop-layout,
+  .shop-builds-wrap,
+  .shop-graphs {
+    display: none !important;
+  }
+
+  .too-small-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    margin: 0 auto;
+    padding: 20px;
+    max-width: 260px;
+    box-sizing: border-box;
+    font-family: "ValveOracle", "Segoe UI", sans-serif;
+    font-size: 20px;
+    line-height: 1.5;
+    color: #bcb49c;
+    text-align: center;
+    text-wrap: balance;
+  }
 }

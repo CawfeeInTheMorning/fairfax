@@ -1440,6 +1440,7 @@
   let sectionActionsRowEl = null;
   let addSectionBtnViewportEl = null;
   let addSectionBtnEl = null;
+  let resetOriginalBtnEl = null;
   let buildSaveBtnEl = null;
   let buildTitleInputEl = null;
   let savedBuildsHeroesEl = null;
@@ -1785,13 +1786,19 @@
       box.className = "search-scope-box";
       chip.appendChild(box);
 
+      const checkmark = document.createElement("img");
+      checkmark.className = "search-scope-checkmark";
+      checkmark.src = "frontend_assets/icon_checkmark.svg";
+      checkmark.alt = "";
+      box.appendChild(checkmark);
+
       // Checkmark visibility is driven directly from JS (not a CSS
       // :checked ~ sibling-combinator rule) — a plain class toggle here is
       // unambiguous regardless of any browser-specific quirk in how
       // :checked-triggered sibling repaints get scheduled, which repeated
       // reports of the checkmark "not visually updating" pointed at.
       checkbox.addEventListener("change", () => {
-        box.classList.toggle("is-checked", checkbox.checked);
+        checkmark.classList.toggle("is-checked", checkbox.checked);
         toggleSearchScope(scope, checkbox.checked);
       });
 
@@ -2226,18 +2233,41 @@
     return { section, body };
   }
 
+  // Splits a raw wiki value like "14.8+0.3" into its base number and Boon
+  // Scaling suffix (deadlock.wiki's own infobox-h-spiritboon — how much
+  // the stat grows with character level), so the "+0.3" renders as its
+  // own badge instead of trailing text. Values with no "+" (most of them)
+  // just pass through with boon: null.
+  function splitBoonScaling(value) {
+    const idx = value.indexOf("+");
+    if (idx === -1) return { base: value, boon: null };
+    return { base: value.slice(0, idx), boon: value.slice(idx + 1) };
+  }
+
   function heroTooltipStatRowsHtml(stats) {
     return stats
-      .map(
-        (s) =>
+      .map((s) => {
+        const { base, boon } = splitBoonScaling(s.value);
+        const boonHtml = boon
+          ? '<span class="hero-tooltip-stat-boon">' +
+            statIconImg("boon-scaling", "hero-tooltip-stat-boon-icon") +
+            "+" +
+            escapeHtml(boon) +
+            "</span>"
+          : "";
+        return (
           '<div class="hero-tooltip-stat-row">' +
           '<span class="hero-tooltip-stat-label-group">' +
           (s.icon ? '<img class="hero-tooltip-stat-icon" src="stat_icons/' + s.icon + '" alt="">' : "") +
           '<span class="hero-tooltip-stat-label">' + escapeHtml(s.label) + "</span>" +
           "</span>" +
-          '<span class="hero-tooltip-stat-value">' + escapeHtml(s.value) + "</span>" +
+          '<span class="hero-tooltip-stat-value-wrap">' +
+          '<span class="hero-tooltip-stat-value">' + escapeHtml(base) + "</span>" +
+          boonHtml +
+          "</span>" +
           "</div>"
-      )
+        );
+      })
       .join("");
   }
 
@@ -2982,26 +3012,39 @@
     }
   }
 
+  // Curated builds (js/curated-builds.js) are static data, not localStorage
+  // — merged in on every load so they show up for every visitor
+  // automatically, survive a cleared/fresh browser, and can't be edited or
+  // deleted away (see deleteBuildFromLibrary's author guard above). Cloned
+  // per-load so nothing downstream can accidentally mutate the shared
+  // CURATED_BUILDS array itself.
   function loadSavedBuilds() {
     let raw;
     try {
       raw = localStorage.getItem(SAVED_BUILDS_STORAGE_KEY);
     } catch (e) {
-      return [];
+      raw = null;
     }
-    if (!raw) return [];
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (e) {
-      return [];
+    let ownBuilds = [];
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) ownBuilds = parsed;
+      } catch (e) {
+        ownBuilds = [];
+      }
     }
-    return Array.isArray(parsed) ? parsed : [];
+    const curated = typeof CURATED_BUILDS !== "undefined" ? JSON.parse(JSON.stringify(CURATED_BUILDS)) : [];
+    return ownBuilds.concat(curated);
   }
 
+  // Only the user's own builds get written back — savedBuilds (in memory)
+  // has curated builds merged in by loadSavedBuilds, and writing those to
+  // storage too would double them up next load (loaded from storage AND
+  // re-merged from CURATED_BUILDS).
   function persistSavedBuilds() {
     try {
-      localStorage.setItem(SAVED_BUILDS_STORAGE_KEY, JSON.stringify(savedBuilds));
+      localStorage.setItem(SAVED_BUILDS_STORAGE_KEY, JSON.stringify(savedBuilds.filter((b) => !b.author)));
     } catch (e) {
       // Storage full/unavailable — saved builds stay usable for the rest of
       // the session, they just won't persist.
@@ -3544,6 +3587,21 @@
     actionsRight.appendChild(addBtn);
     addSectionBtnEl = addBtn;
 
+    // Only shown while a curated build (see js/curated-builds.js) is the
+    // one currently loaded — see updateResetOriginalBtnVisibility, called
+    // from renderBuildSections so it stays correct across load/new/edit.
+    const resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.className = "build-reset-original-btn";
+    resetBtn.title = "Revert to this curated build's original state";
+    resetBtn.appendChild(document.createTextNode("Reset Original"));
+    resetBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      resetCuratedBuild();
+    });
+    actionsRight.appendChild(resetBtn);
+    resetOriginalBtnEl = resetBtn;
+
     buildSectionsViewportEl = document.createElement("div");
     buildSectionsViewportEl.className = "build-sections-viewport";
     left.appendChild(buildSectionsViewportEl);
@@ -3669,6 +3727,34 @@
     renderInvestmentBars();
     renderGraphsChart();
     updateAddSectionBtnAvailability();
+    updateResetOriginalBtnVisibility();
+  }
+
+  // The canvas can drift from a loaded curated build's original data
+  // without the user asking for that — every edit auto-syncs into the
+  // linked savedBuilds entry (see saveBuildToStorage), curated builds
+  // included, so a stray edit while just looking at one silently rewrites
+  // its in-memory copy (never persisted — see persistSavedBuilds' author
+  // filter — so it's back to normal after a reload, but misleading until
+  // then). This button's only shown while the loaded build actually is a
+  // curated one, as an explicit undo for that drift.
+  function updateResetOriginalBtnVisibility() {
+    if (!resetOriginalBtnEl) return;
+    const isCurated = !!buildState.savedBuildId && CURATED_BUILDS.some((b) => b.id === buildState.savedBuildId);
+    resetOriginalBtnEl.style.display = isCurated ? "flex" : "none";
+  }
+
+  function resetCuratedBuild() {
+    const original = CURATED_BUILDS.find((b) => b.id === buildState.savedBuildId);
+    if (!original) return;
+    buildState.title = original.name;
+    buildState.hero = original.hero;
+    buildState.sections = JSON.parse(JSON.stringify(original.sections));
+    saveBuildToStorage(buildState);
+    if (buildTitleInputEl) buildTitleInputEl.value = buildState.title;
+    renderBuildSections();
+    updateShopItemUsedState();
+    clearInvestmentHighlight();
   }
 
   function buildSectionEl(section) {
@@ -3702,6 +3788,19 @@
     title.textContent = section.name;
     title.dataset.action = "rename-section";
     header.appendChild(title);
+
+    // Optional, freeform text (e.g. "At least 1 for Green Spike") shown
+    // beside the title — the same role deadlock.wiki-adjacent build
+    // tools use a description next to an OPTIONAL tag for. Empty by
+    // default; the CSS :empty placeholder is what makes an unused one
+    // discoverable rather than looking like dead space.
+    const description = document.createElement("div");
+    description.className = "build-section-description";
+    description.contentEditable = "true";
+    description.spellcheck = false;
+    description.textContent = section.description || "";
+    description.dataset.action = "edit-section-description";
+    header.appendChild(description);
 
     if (section.color) header.style.backgroundColor = section.color;
 
@@ -3749,6 +3848,17 @@
     // real browsers, same reasoning as .search-scope-box's own checkmark.
     const optionalBox = document.createElement("span");
     optionalBox.className = "build-section-settings-optional-box";
+    // Every toggle click runs toggleSectionOptional -> renderBuildSections,
+    // rebuilding this whole element from buildState — so the checkmark's
+    // shown/hidden state can just be read directly off section.optional
+    // right here rather than wired up through a change listener/CSS
+    // :checked selector that has to independently end up correct.
+    const optionalCheckmark = document.createElement("img");
+    optionalCheckmark.className =
+      "build-section-settings-optional-checkmark" + (section.optional ? " is-checked" : "");
+    optionalCheckmark.src = "frontend_assets/icon_checkmark.svg";
+    optionalCheckmark.alt = "";
+    optionalBox.appendChild(optionalCheckmark);
     optionalRow.appendChild(optionalBox);
     const optionalText = document.createElement("span");
     optionalText.className = "build-section-settings-optional-text";
@@ -3811,7 +3921,15 @@
   function addBuildSection() {
     // 276x190 = widthForColumns(3) x heightForRows(1, ~37px header) — a new
     // section starts already snapped to the slot grid (3 columns, 1 row).
-    const section = { id: makeId("sec"), name: "New Section", optional: false, items: [], width: 276, height: 190 };
+    const section = {
+      id: makeId("sec"),
+      name: "New Section",
+      description: "",
+      optional: false,
+      items: [],
+      width: 276,
+      height: 190
+    };
     buildState.sections.push(section);
     saveBuildToStorage(buildState);
     renderBuildSections();
@@ -3827,6 +3945,14 @@
     if (!section) return;
     const trimmed = newName.trim();
     section.name = trimmed || section.name;
+    saveBuildToStorage(buildState);
+    renderBuildSections();
+  }
+
+  function updateSectionDescription(id, newDescription) {
+    const section = findSection(id);
+    if (!section) return;
+    section.description = newDescription.trim();
     saveBuildToStorage(buildState);
     renderBuildSections();
   }
@@ -4176,6 +4302,8 @@
   // was loaded from this same entry) is left exactly as it is, just no
   // longer considered "linked" to a (now-gone) saved entry.
   function deleteBuildFromLibrary(id) {
+    const target = savedBuilds.find((b) => b.id === id);
+    if (target && target.author) return; // curated build — not user data, nothing to delete
     savedBuilds = savedBuilds.filter((b) => b.id !== id);
     if (buildState.savedBuildId === id) {
       buildState.savedBuildId = null;
@@ -4314,14 +4442,26 @@
         date.textContent = new Date(saved.savedAt).toLocaleDateString("en-US");
         row.appendChild(date);
 
-        const deleteBtn = document.createElement("div");
-        deleteBtn.className = "saved-builds-hero-build-delete";
-        deleteBtn.title = "Delete";
-        deleteBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openDeleteBuildConfirmModal(saved.id);
-        });
-        row.appendChild(deleteBtn);
+        // Curated builds (see js/curated-builds.js) are identified by
+        // having an author — shipped as static data rather than a
+        // user's own localStorage save, so there's no delete button;
+        // "deleting" one would only hide it until the next reload, which
+        // would read as a broken delete rather than doing anything real.
+        if (saved.author) {
+          const authorBadge = document.createElement("div");
+          authorBadge.className = "saved-builds-hero-build-author-badge";
+          authorBadge.textContent = "Author: " + saved.author;
+          row.appendChild(authorBadge);
+        } else {
+          const deleteBtn = document.createElement("div");
+          deleteBtn.className = "saved-builds-hero-build-delete";
+          deleteBtn.title = "Delete";
+          deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openDeleteBuildConfirmModal(saved.id);
+          });
+          row.appendChild(deleteBtn);
+        }
 
         row.addEventListener("click", () => loadBuildFromLibrary(saved.id));
         list.appendChild(row);
@@ -4672,17 +4812,24 @@
 
   function handleSectionsFocusOut(e) {
     const title = e.target.closest(".build-section-title");
-    if (!title) return;
-    const section = title.closest(".build-section");
-    if (section) renameBuildSection(section.dataset.sectionId, title.textContent);
+    if (title) {
+      const section = title.closest(".build-section");
+      if (section) renameBuildSection(section.dataset.sectionId, title.textContent);
+      return;
+    }
+    const description = e.target.closest(".build-section-description");
+    if (description) {
+      const section = description.closest(".build-section");
+      if (section) updateSectionDescription(section.dataset.sectionId, description.textContent);
+    }
   }
 
   function handleSectionsKeyDown(e) {
     if (e.key !== "Enter") return;
-    const title = e.target.closest(".build-section-title");
-    if (!title) return;
+    const editable = e.target.closest(".build-section-title, .build-section-description");
+    if (!editable) return;
     e.preventDefault();
-    title.blur();
+    editable.blur();
   }
 
   function handleSectionsMouseDown(e) {
