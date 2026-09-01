@@ -18,6 +18,11 @@
   src: url("../valvepulp-bold.ttf") format("truetype");
   font-weight: 700;
 }
+@font-face {
+  font-family: "RetailText";
+  src: url("../retailtextdemo-bold.otf") format("opentype");
+  font-weight: 700;
+}
 
 :root {
   --panel-w: 1076px;
@@ -49,12 +54,11 @@
   --tooltip-crop-top: 60px;
   --tooltip-crop-bottom: 38px;
 
-  /* .build-sections-container's "100% scale" reference width — capped at
-     roughly 2 sections of 6 items each side by side (2 * 528px, matching
-     app.js's widthForColumns(6), + the 32px gap between them), leaving
-     .shop-builds-right room alongside it instead of the sections column
-     claiming all available width. */
-  --build-sections-native-w: 1088px;
+  /* .build-sections-container's "100% scale" reference width — capped
+     well short of the full build panel width, leaving .shop-builds-right
+     room alongside it instead of the sections column claiming all
+     available width. */
+  --build-sections-native-w: 1158px;
 
   /* .shop-builds' own native/design width — --panel-w + the 6px gap +
      .tooltip-display's native width, i.e. what #shop-builds' actual
@@ -156,19 +160,19 @@
    background artwork. Each category panel has its own independent
    set, so weapon/vitality/spirit can be tuned separately. */
 .shop-panel.category-weapon {
-  --tier-800-x: 36px;
+  --tier-800-x: 32px;
   --tier-800-y: 170px;
   --tier-1600-x: -30px;
   --tier-1600-y: 40px;
-  --tier-3200-x: 36px;
+  --tier-3200-x: 32px;
   --tier-3200-y: 34px;
-  --tier-6400-x: 54px;
+  --tier-6400-x: 133px;
   --tier-6400-y: 34px;
 
   --tier-800-cols: 5;
   --tier-1600-cols: 6;
-  --tier-3200-cols: 6;
-  --tier-6400-cols: 5;
+  --tier-3200-cols: 7;
+  --tier-6400-cols: 4;
 }
 
 .shop-panel.category-vitality {
@@ -177,9 +181,9 @@
   --tier-1600-x: -28px;
   --tier-1600-y: 40px;
   --tier-3200-x: 36px;
-  --tier-3200-y: 34px;
+  --tier-3200-y: 38px;
   --tier-6400-x: -28px;
-  --tier-6400-y: 34px;
+  --tier-6400-y: 38px;
 
   --tier-800-cols: 5;
   --tier-1600-cols: 6;
@@ -193,9 +197,9 @@
   --tier-1600-x: -28px;
   --tier-1600-y: 40px;
   --tier-3200-x: 36px;
-  --tier-3200-y: 98px;
+  --tier-3200-y: 102px;
   --tier-6400-x: -28px;
-  --tier-6400-y: 98px;
+  --tier-6400-y: 102px;
 
   --tier-800-cols: 5;
   --tier-1600-cols: 6;
@@ -212,18 +216,18 @@
    the largest bucket) 6 cols, 2026 (6 heroes) 3 cols, 2027 (placeholder,
    no heroes yet) 4 cols. */
 .shop-panel.category-hero {
-  --year-2025-x: 36px;
-  --year-2025-y: 170px;
-  --year-2024-x: -30px;
+  --year-2025-x: 596px;
+  --year-2025-y: 168px;
+  --year-2024-x: -502px;
   --year-2024-y: 40px;
   --year-2026-x: 36px;
-  --year-2026-y: -90px;
+  --year-2026-y: -30px;
   --year-2027-x: 54px;
   --year-2027-y: 34px;
 
   --year-2025-cols: 5;
   --year-2024-cols: 6;
-  --year-2026-cols: 5;
+  --year-2026-cols: 6;
   --year-2027-cols: 4;
 }
 
@@ -2822,6 +2826,65 @@ body {
   transform: translate(var(--tier-6400-x), var(--tier-6400-y));
 }
 
+/* Sits directly on .tier-grid at the coordinates in
+   TIER_PRICE_TAG_POSITIONS (app.js) — filling in the text that
+   shop_bg_<cat>.png's own "empty tag" artwork no longer bakes in. */
+.tier-price-tag {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.tier-price-tag-icon {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+
+.tier-price-tag-value {
+  font-family: "RetailText", "ValveOracle", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #83a67a;
+  letter-spacing: -1px;
+  white-space: nowrap;
+}
+
+.tier-price-tag-value.tier-800 {
+  font-size: 24px;
+}
+
+/* Heroes tab's release-year tags — own class rather than reusing
+   .tier-price-tag/.tier-price-tag-value (the shop panels' soul-cost
+   tags), since these don't share their icon and are conceptually a
+   different thing (a year, not a price) even though the layout technique
+   (see buildHeroYearTag/HERO_YEAR_TAG_POSITIONS in app.js) is the same. */
+.year-tag {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.year-tag-value {
+  font-family: "RetailText", "ValveOracle", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #83a67a;
+  letter-spacing: -1px;
+  white-space: nowrap;
+}
+
+.year-tag-value.year-2025 {
+  font-size: 24px;
+}
+
+.year-tag-value.year-2026 {
+  font-size: 32px;
+}
+
 @media (max-width: 820px) {
   .shop-panel {
     aspect-ratio: auto;
@@ -3523,6 +3586,29 @@ body {
 
 .hero-tooltip-info-body {
   background-image: url("../frontend_assets/tooltip_bg_hero.png");
+}
+
+/* Character Info values are free text off the wiki (e.g. Mo & Krill's
+   pronouns "They/Them; He/Him (Mo); He/Him (Krill)", or a multi-name
+   Internal Names list) rather than the short numeric stats
+   .hero-tooltip-stat-value is otherwise used for — nowrap there just runs
+   them off the edge of the tooltip instead of wrapping. min-width:0
+   overrides the flex item default of min-width:auto, which otherwise
+   refuses to shrink narrower than the text's own unwrapped width even
+   with white-space:normal set. */
+.hero-tooltip-info-body .hero-tooltip-stat-row {
+  align-items: flex-start;
+}
+
+.hero-tooltip-info-body .hero-tooltip-stat-label {
+  flex-shrink: 0;
+}
+
+.hero-tooltip-info-body .hero-tooltip-stat-value {
+  white-space: normal;
+  min-width: 0;
+  text-align: right;
+  word-break: break-word;
 }
 
 /* Mirrors deadlock.wiki's own .weaponcard-container widget (see

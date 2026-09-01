@@ -55,6 +55,7 @@ const SHOP_DATA = {
         { name: "Hollow Point", file: "Hollow_Point.png" },
         { name: "Hunter's Aura", file: "Hunter's_Aura.png" },
         { name: "Point Blank", file: "Point_Blank.png" },
+        { name: "Shadow Weave", file: "Shadow_Weave.png", active: true },
         { name: "Sharpshooter", file: "Sharpshooter.png" },
         { name: "Spirit Rend", file: "Spirit_Rend.png" },
         { name: "Tesla Bullets", file: "Tesla_Bullets.png" },
@@ -70,7 +71,6 @@ const SHOP_DATA = {
         { name: "Glass Cannon", file: "Glass_Cannon.png" },
         { name: "Lucky Shot", file: "Lucky_Shot.png" },
         { name: "Ricochet", file: "Ricochet.png" },
-        { name: "Shadow Weave", file: "Shadow_Weave.png", active: true },
         { name: "Silencer", file: "Silencer.png" },
         { name: "Spellslinger", file: "Spellslinger.png" },
         { name: "Spiritual Overflow", file: "Spiritual_Overflow.png" }
@@ -152,6 +152,7 @@ const SHOP_DATA = {
     folder: "spirit_icons",
     tiers: {
       800: [
+        { name: "Extra Charge", file: "Extra_Charge.png" },
         { name: "Extra Spirit", file: "Extra_Spirit.png" },
         { name: "Golden Goose Egg", file: "Golden_Goose_Egg.png", active: true },
         { name: "Mystic Burst", file: "Mystic_Burst.png" },
@@ -180,6 +181,7 @@ const SHOP_DATA = {
         { name: "Greater Expansion", file: "Greater_Expansion.png", active: true },
         { name: "Knockdown", file: "Knockdown.png" },
         { name: "Radiant Regeneration", file: "Radiant_Regeneration.png" },
+        { name: "Rapid Recharge", file: "Rapid_Recharge.png" },
         { name: "Silence Wave", file: "Silence_Wave.png", active: true },
         { name: "Spirit Snatch", file: "Spirit_Snatch.png", active: true },
         { name: "Superior Cooldown", file: "Superior_Cooldown.png" },
@@ -213,10 +215,10 @@ const SHOP_DATA = {
 // Present in the icon folder but not currently placed in any tier in the
 // reference screenshots (shown greyed-out/disabled in-game). Kept out of
 // the rendered grid for now — flag here so they aren't mistaken for
-// missing files later.
-const LEGACY_ITEMS = {
-  spirit: ["Extra_Charge.png", "Rapid_Recharge.png"]
-};
+// missing files later. Extra Charge/Rapid Recharge (formerly here too)
+// moved into spirit's 1600/3200 tiers above — real items in curated
+// builds that reference them (see js/curated-builds.js).
+const LEGACY_ITEMS = {};
 
 // Maps the short icon codes used below (and in the "Icon Reference" sheet
 // of item_data.xlsx) to their actual filename in stat_icons/.

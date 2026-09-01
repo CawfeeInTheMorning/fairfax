@@ -3,6 +3,54 @@
 
   const CATEGORY_ORDER = ["weapon", "vitality", "spirit"];
   const TIER_ORDER = [800, 1600, 3200, 6400];
+
+  // Where each tier's price tag sits on top of shop_bg_<cat>.png's own
+  // "empty tag" artwork — that background art has the tag *shape* baked
+  // in (a rotated ticket/badge silhouette per tier) but no text, since
+  // price_currency.png + the tier number are rendered separately now (see
+  // buildTierPriceTag). x/y are the tag's center in the SAME native
+  // 1076x960 coordinate space .tier-grid itself uses, measured directly
+  // off the background art (so they line up with the empty socket
+  // regardless of .tier-quadrant's own translate offsets); rot is the
+  // tag's tilt in degrees. Eyeballed from the source art at fairly high
+  // confidence, but — like the tier-*-x/-y quadrant offsets above — may
+  // still need small nudges once checked live.
+  const TIER_PRICE_TAG_POSITIONS = {
+    weapon: {
+      800: { x: 71, y: 166, rot: -6 },
+      1600: { x: 555, y: 37, rot: -6 },
+      3200: { x: 88, y: 508, rot: -6 },
+      6400: { x: 738, y: 502, rot: -6 }
+    },
+    vitality: {
+      800: { x: 74, y: 167, rot: -6 },
+      1600: { x: 554, y: 39, rot: -6 },
+      3200: { x: 86, y: 508, rot: -6 },
+      6400: { x: 564, y: 498, rot: -6 }
+    },
+    spirit: {
+      800: { x: 74, y: 167, rot: -6 },
+      1600: { x: 554, y: 39, rot: -6 },
+      3200: { x: 86, y: 508, rot: -6 },
+      6400: { x: 564, y: 498, rot: -6 }
+    }
+  };
+  // Same idea as TIER_PRICE_TAG_POSITIONS just above, applied to the
+  // Heroes tab's 4 year-quadrants instead of a tier's soul cost — each
+  // quadrant gets its own price_currency.png + text tag, positioned
+  // independently so it can be nudged without affecting the others.
+  // Seeded from the weapon panel's own (also-independent) tag positions
+  // as a starting point, per the mapping .hero-quadrant.year-* already
+  // uses (top-left/top-right/bottom-left/bottom-right — see
+  // HERO_YEAR_ORDER below): 2025~800, 2024~1600, 2026~3200, 2027~6400.
+  const HERO_YEAR_TAG_TEXT = { 2025: "2025", 2024: "2024", 2026: "2026", 2027: "2027+" };
+  const HERO_YEAR_TAG_POSITIONS = {
+    2025: { x: 632, y: 164, rot: -6 },
+    2024: { x: 80, y: 37, rot: -6 },
+    2026: { x: 88, y: 626, rot: -6 },
+    2027: { x: 656, y: 614, rot: -6 }
+  };
+
   const BUILD_STORAGE_KEY = "deadlockShopBuild";
   const BUILD_STORAGE_VERSION = 1;
   // Separate key: an array of named snapshots (see saveCurrentBuildToLibrary),
@@ -1456,6 +1504,7 @@
   let saveBuildModalHero = null; // staged hero pick while the modal is open — only committed to buildState on confirm
   let newBuildConfirmModalEl = null;
   let deleteBuildConfirmModalEl = null;
+  let resetOriginalConfirmModalEl = null;
   let pendingDeleteBuildId = null;
   let savedBuilds = []; // [{id, name, hero, sections, savedAt}] — see loadSavedBuilds/saveCurrentBuildToLibrary
   let dragPayload = null; // set on dragstart, read on drop (dataTransfer.getData is unreliable during dragover in some browsers)
@@ -1577,12 +1626,19 @@
       const panel = document.createElement("div");
       panel.className = "shop-panel category-" + cat;
       panel.id = "panel-" + cat;
-      panel.style.backgroundImage = 'url("frontend_assets/shop_bg_' + cat + '.webp")';
+      panel.style.backgroundImage = 'url("frontend_assets/shop_bg_' + cat + '.png")';
 
       const tierGrid = document.createElement("div");
       tierGrid.className = "tier-grid";
       TIER_ORDER.forEach((tier) => {
         tierGrid.appendChild(buildTierQuadrant(cat, tier));
+      });
+      // Price tags are positioned directly on .tier-grid (not nested in
+      // their .tier-quadrant) — see TIER_PRICE_TAG_POSITIONS — so their
+      // coordinates read straight off the background art without also
+      // accounting for each quadrant's own translate offset.
+      TIER_ORDER.forEach((tier) => {
+        tierGrid.appendChild(buildTierPriceTag(cat, tier));
       });
       panel.appendChild(tierGrid);
 
@@ -1642,8 +1698,35 @@
       heroGrid.appendChild(quad);
     });
 
+    // Same reasoning as buildPanels' own price tags — sits directly on
+    // .hero-grid (not nested in .hero-quadrant) so its coordinates in
+    // HERO_YEAR_TAG_POSITIONS don't also have to account for each
+    // quadrant's own transform.
+    HERO_YEAR_ORDER.forEach((year) => {
+      heroGrid.appendChild(buildHeroYearTag(year));
+    });
+
     panel.appendChild(heroGrid);
     shopEl.appendChild(panel);
+  }
+
+  function buildHeroYearTag(year) {
+    const pos = HERO_YEAR_TAG_POSITIONS[year];
+
+    const tag = document.createElement("div");
+    tag.className = "year-tag";
+    tag.style.left = pos.x + "px";
+    tag.style.top = pos.y + "px";
+    tag.style.transform = "translate(-50%, -50%) rotate(" + pos.rot + "deg)";
+
+    // No price_currency.png icon here — these show a release year, not a
+    // soul cost, unlike buildTierPriceTag's tags.
+    const value = document.createElement("span");
+    value.className = "year-tag-value year-" + year;
+    value.textContent = HERO_YEAR_TAG_TEXT[year];
+    tag.appendChild(value);
+
+    return tag;
   }
 
   // Same card shell as buildItemCard (background art + paper texture +
@@ -1853,6 +1936,29 @@
     results.appendChild(scaled);
     panel.appendChild(results);
     shopEl.appendChild(panel);
+  }
+
+  function buildTierPriceTag(cat, tier) {
+    const pos = TIER_PRICE_TAG_POSITIONS[cat][tier];
+
+    const tag = document.createElement("div");
+    tag.className = "tier-price-tag";
+    tag.style.left = pos.x + "px";
+    tag.style.top = pos.y + "px";
+    tag.style.transform = "translate(-50%, -50%) rotate(" + pos.rot + "deg)";
+
+    const icon = document.createElement("img");
+    icon.className = "tier-price-tag-icon";
+    icon.src = "frontend_assets/price_currency.png";
+    icon.alt = "";
+    tag.appendChild(icon);
+
+    const value = document.createElement("span");
+    value.className = "tier-price-tag-value tier-" + tier;
+    value.textContent = String(tier);
+    tag.appendChild(value);
+
+    return tag;
   }
 
   function buildTierQuadrant(cat, tier) {
@@ -3597,7 +3703,7 @@
     resetBtn.appendChild(document.createTextNode("Reset Original"));
     resetBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      resetCuratedBuild();
+      openResetOriginalConfirmModal();
     });
     actionsRight.appendChild(resetBtn);
     resetOriginalBtnEl = resetBtn;
@@ -3802,7 +3908,12 @@
     description.dataset.action = "edit-section-description";
     header.appendChild(description);
 
-    if (section.color) header.style.backgroundColor = section.color;
+    // Optional overrides a custom section color when both apply — it's
+    // the more useful signal to keep visible at a glance (matches
+    // .build-section.optional's own dashed-border treatment taking
+    // priority the same way).
+    if (section.optional) header.style.backgroundColor = "rgb(27 123 139)";
+    else if (section.color) header.style.backgroundColor = section.color;
 
     const settingsBtn = document.createElement("div");
     settingsBtn.className = "build-section-settings-btn";
@@ -4207,6 +4318,68 @@
   function closeDeleteBuildConfirmModal() {
     pendingDeleteBuildId = null;
     if (deleteBuildConfirmModalEl) deleteBuildConfirmModalEl.classList.remove("is-open");
+  }
+
+  // Same "small dialog over the build panel" shell as New Build/Delete
+  // Build's own confirm modals above — asks before discarding whatever
+  // edits have drifted the canvas from the curated build's original data
+  // (see resetCuratedBuild/updateResetOriginalBtnVisibility).
+  function buildResetOriginalConfirmModal() {
+    const overlay = document.createElement("div");
+    overlay.className = "save-build-modal-overlay reset-original-confirm-overlay";
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeResetOriginalConfirmModal();
+    });
+
+    const modal = document.createElement("div");
+    modal.className = "save-build-modal new-build-confirm-modal";
+    overlay.appendChild(modal);
+
+    const title = document.createElement("div");
+    title.className = "save-build-modal-title";
+    title.textContent = "Reset Original?";
+    modal.appendChild(title);
+
+    const message = document.createElement("div");
+    message.className = "new-build-confirm-message";
+    message.textContent = "Reset this build to its original state and revert your changes.";
+    modal.appendChild(message);
+
+    const actions = document.createElement("div");
+    actions.className = "save-build-modal-actions";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "save-build-cancel-btn";
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.addEventListener("click", closeResetOriginalConfirmModal);
+    actions.appendChild(cancelBtn);
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "save-build-confirm-btn";
+    confirmBtn.textContent = "Reset Original";
+    confirmBtn.addEventListener("click", () => {
+      resetCuratedBuild();
+      closeResetOriginalConfirmModal();
+    });
+    actions.appendChild(confirmBtn);
+
+    modal.appendChild(actions);
+    document.body.appendChild(overlay);
+    resetOriginalConfirmModalEl = overlay;
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && overlay.classList.contains("is-open")) closeResetOriginalConfirmModal();
+    });
+  }
+
+  function openResetOriginalConfirmModal() {
+    if (resetOriginalConfirmModalEl) resetOriginalConfirmModalEl.classList.add("is-open");
+  }
+
+  function closeResetOriginalConfirmModal() {
+    if (resetOriginalConfirmModalEl) resetOriginalConfirmModalEl.classList.remove("is-open");
   }
 
   // Applies the modal's name/hero fields to the canvas, then snapshots it
@@ -5290,6 +5463,7 @@
   buildSaveBuildModal();
   buildNewBuildConfirmModal();
   buildDeleteBuildConfirmModal();
+  buildResetOriginalConfirmModal();
   syncTooltipDisplayHeight();
   syncShopBuildsAlignment();
   syncHeaderCreditAlignment();
